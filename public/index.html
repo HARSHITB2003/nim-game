@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NIM | Main Menu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <main class="menu-page" role="main">
+      <section class="hero" aria-labelledby="title">
+        <h1 id="title" class="title">NIM</h1>
+        <p class="subtitle">The Mathematical Strategy Game</p>
+      </section>
+
+      <section class="menu-cards" aria-label="Main menu options">
+        <article class="menu-card" id="pvpCard" tabindex="0" role="button" aria-label="Play Player versus Player">
+          <div class="card-icon" aria-hidden="true">⚔️</div>
+          <h2>Player vs Player</h2>
+          <p>Challenge a friend in local two-player mode.</p>
+        </article>
+
+        <article class="menu-card" id="pveCard" tabindex="0" role="button" aria-label="Play Player versus AI">
+          <div class="card-icon" aria-hidden="true">🤖</div>
+          <h2>Player vs AI</h2>
+          <p>Face an adaptive computer opponent.</p>
+        </article>
+
+        <article class="menu-card" id="tutorialCard" tabindex="0" role="button" aria-label="Open tutorial">
+          <div class="card-icon" aria-hidden="true">📖</div>
+          <h2>Tutorial</h2>
+          <p>Learn rules, tactics, and winning patterns.</p>
+        </article>
+
+        <article class="menu-card" id="statsCard" tabindex="0" role="button" aria-label="Open statistics">
+          <div class="card-icon" aria-hidden="true">📊</div>
+          <h2>Statistics</h2>
+          <p>Track performance and game outcomes.</p>
+        </article>
+      </section>
+
+      <section class="difficulty-panel" id="difficultyPanel" aria-label="AI difficulty selector" hidden>
+        <h3>Choose AI Difficulty</h3>
+        <div class="difficulty-options">
+          <button type="button" class="difficulty-btn easy" data-difficulty="easy">
+            <span class="badge">Easy</span>
+            <span class="desc">Random Moves</span>
+          </button>
+          <button type="button" class="difficulty-btn medium" data-difficulty="medium">
+            <span class="badge">Medium</span>
+            <span class="desc">Balanced Strategy</span>
+          </button>
+          <button type="button" class="difficulty-btn hard" data-difficulty="hard">
+            <span class="badge">Hard</span>
+            <span class="desc">Optimal Play</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="heap-config" aria-label="Heap configuration">
+        <h3>Heap Configuration</h3>
+        <div class="heap-controls">
+          <label for="heapPreset">Preset</label>
+          <select id="heapPreset" name="heapPreset">
+            <option value="1,3,5,7">Classic 1-3-5-7</option>
+            <option value="3,4,5">Simple 3-4-5</option>
+            <option value="2,5,6,8">Challenge 2-5-6-8</option>
+            <option value="custom">Custom heap sizes</option>
+          </select>
+        </div>
+        <div class="heap-controls custom-input" id="customHeapWrap" hidden>
+          <label for="customHeaps">Custom</label>
+          <input
+            id="customHeaps"
+            name="customHeaps"
+            type="text"
+            inputmode="numeric"
+            placeholder="Example: 2,4,7"
+            aria-label="Custom heap sizes comma separated"
+          />
+        </div>
+      </section>
+    </main>
+
+    <script src="js/particles.js" defer></script>
+    <script src="js/menu.js" defer></script>
+  </body>
+</html>
