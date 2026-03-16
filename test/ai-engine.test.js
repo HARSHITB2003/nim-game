@@ -54,7 +54,7 @@ describe('NimAI difficulty levels', () => {
     assert.ok(move.stonesToTake >= 1);
   });
 
-  it('getMediumMove plays optimally roughly 70% over 200 trials', () => {
+  it('getMediumMove plays optimally roughly 85% over 200 trials', () => {
     let optimalCount = 0;
     const heaps = [3, 4, 5, 6];
     for (let i = 0; i < 200; i++) {
@@ -66,7 +66,7 @@ describe('NimAI difficulty levels', () => {
       }
     }
     const rate = optimalCount / 200;
-    assert.ok(rate >= 0.50 && rate <= 0.90, `optimal rate ${rate} should be between 50-90%`);
+    assert.ok(rate >= 0.65 && rate <= 0.98, `optimal rate ${rate} should be between 65-98%`);
   });
 
   it('getMediumMove uses misere-aware logic in endgame', () => {
