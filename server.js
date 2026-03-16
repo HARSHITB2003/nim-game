@@ -59,20 +59,30 @@ function getActiveGameEntry(req, res) {
 
 app.post('/api/game/start', (req, res) => {
   try {
-    const { mode, difficulty, heaps } = req.body || {};
+    const { mode, difficulty, heaps, player1Name, player2Name } = req.body || {};
 
     if (!Array.isArray(heaps) || heaps.length === 0) {
       res.status(400).json({ error: 'heaps must be a non-empty array.' });
       return;
     }
 
+    const validHeaps = heaps.every(h => Number.isInteger(h) && h >= 0);
+    if (!validHeaps || heaps.length > 10 || heaps.some(h => h > 100)) {
+      res.status(400).json({ error: 'Invalid heap config. Use 1-10 heaps with values 0-100.' });
+      return;
+    }
+
+    const p1 = (player1Name || 'Player 1').trim();
+    const p2 = mode === 'pve' ? 'NIM-AI' : (player2Name || 'Player 2').trim();
+
     const game = new NimGame(heaps);
-    const gameId = createGame(mode, difficulty, heaps);
+    const gameId = createGame(mode, difficulty, heaps, p1, p2);
 
     activeGames.set(gameId, {
       game,
       mode,
       difficulty,
+      playerNames: { player1: p1, player2: p2 },
     });
 
     res.json({
@@ -81,6 +91,7 @@ app.post('/api/game/start', (req, res) => {
       currentPlayer: game.currentPlayer,
     });
   } catch (error) {
+    console.error('start game error:', error);
     res.status(500).json({ error: 'Failed to start game.' });
   }
 });
@@ -141,7 +152,10 @@ app.post('/api/game/:id/move', async (req, res) => {
     }
 
     if (game.gameOver) {
-      completeGame(gameId, game.winner, game.moveHistory.length);
+      const winnerName = entry.playerNames
+        ? entry.playerNames[game.winner] || game.winner
+        : game.winner;
+      completeGame(gameId, game.winner, winnerName, game.moveHistory.length);
     }
 
     res.json({
@@ -154,6 +168,7 @@ app.post('/api/game/:id/move', async (req, res) => {
       aiMove,
     });
   } catch (error) {
+    console.error('move error:', error);
     res.status(500).json({ error: 'Failed to process move.' });
   }
 });
@@ -189,6 +204,7 @@ app.post('/api/game/:id/undo', (req, res) => {
       currentPlayer: finalUndo.currentPlayer,
     });
   } catch (error) {
+    console.error('undo error:', error);
     res.status(500).json({ error: 'Failed to undo move.' });
   }
 });
@@ -205,6 +221,7 @@ app.get('/api/game/:id/hint', (req, res) => {
 
     res.json(hint);
   } catch (error) {
+    console.error('hint error:', error);
     res.status(500).json({ error: 'Failed to get hint.' });
   }
 });
@@ -219,6 +236,7 @@ app.get('/api/game/:id/state', (req, res) => {
     const { entry } = gameLookup;
     res.json(entry.game.getState());
   } catch (error) {
+    console.error('state error:', error);
     res.status(500).json({ error: 'Failed to get game state.' });
   }
 });
@@ -227,6 +245,7 @@ app.get('/api/stats', (req, res) => {
   try {
     res.json(getStats());
   } catch (error) {
+    console.error('stats error:', error);
     res.status(500).json({ error: 'Failed to get stats.' });
   }
 });
@@ -236,6 +255,7 @@ app.post('/api/stats/reset', (req, res) => {
     resetStats();
     res.json({ success: true });
   } catch (error) {
+    console.error('reset stats error:', error);
     res.status(500).json({ error: 'Failed to reset stats.' });
   }
 });

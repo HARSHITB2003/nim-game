@@ -15,6 +15,9 @@ db.exec(`
     difficulty TEXT,
     heap_config TEXT NOT NULL,
     winner TEXT,
+    winner_name TEXT,
+    player1_name TEXT,
+    player2_name TEXT,
     total_moves INTEGER DEFAULT 0,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     completed INTEGER DEFAULT 0
@@ -32,13 +35,23 @@ db.exec(`
   );
 `);
 
+const addColumnSafe = (table, column, type) => {
+  try {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  } catch (_) { /* column already exists */ }
+};
+
+addColumnSafe('games', 'winner_name', 'TEXT');
+addColumnSafe('games', 'player1_name', 'TEXT');
+addColumnSafe('games', 'player2_name', 'TEXT');
+
 function toText(value) {
   return typeof value === 'string' ? value : JSON.stringify(value);
 }
 
 const createGameStmt = db.prepare(`
-  INSERT INTO games (mode, difficulty, heap_config)
-  VALUES (?, ?, ?)
+  INSERT INTO games (mode, difficulty, heap_config, player1_name, player2_name)
+  VALUES (?, ?, ?, ?, ?)
 `);
 
 const saveMoveStmt = db.prepare(`
@@ -48,7 +61,7 @@ const saveMoveStmt = db.prepare(`
 
 const completeGameStmt = db.prepare(`
   UPDATE games
-  SET winner = ?, total_moves = ?, completed = 1
+  SET winner = ?, winner_name = ?, total_moves = ?, completed = 1
   WHERE id = ?
 `);
 
@@ -60,7 +73,7 @@ const getGameMovesStmt = db.prepare(`
 `);
 
 const getRecentGamesStmt = db.prepare(`
-  SELECT id, mode, difficulty, heap_config, winner, total_moves, created_at, completed
+  SELECT id, mode, difficulty, heap_config, winner, winner_name, player1_name, player2_name, total_moves, created_at, completed
   FROM games
   WHERE completed = 1
   ORDER BY created_at DESC, id DESC
@@ -116,8 +129,14 @@ const resetStatsTxn = db.transaction(() => {
   db.prepare('DELETE FROM games').run();
 });
 
-function createGame(mode, difficulty, heapConfig) {
-  const result = createGameStmt.run(mode, difficulty ?? null, toText(heapConfig));
+function createGame(mode, difficulty, heapConfig, player1Name, player2Name) {
+  const result = createGameStmt.run(
+    mode,
+    difficulty ?? null,
+    toText(heapConfig),
+    player1Name ?? null,
+    player2Name ?? null
+  );
   return Number(result.lastInsertRowid);
 }
 
@@ -125,8 +144,8 @@ function saveMove(gameId, player, heapIndex, stonesTaken, heapStateAfter, moveNu
   saveMoveStmt.run(gameId, player, heapIndex, stonesTaken, toText(heapStateAfter), moveNumber);
 }
 
-function completeGame(gameId, winner, totalMoves) {
-  completeGameStmt.run(winner ?? null, totalMoves ?? 0, gameId);
+function completeGame(gameId, winner, winnerName, totalMoves) {
+  completeGameStmt.run(winner ?? null, winnerName ?? null, totalMoves ?? 0, gameId);
 }
 
 function getGameMoves(gameId) {

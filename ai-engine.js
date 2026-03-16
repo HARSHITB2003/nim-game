@@ -52,38 +52,56 @@ const NimAI = {
     return null;
   },
 
-  getEasyMove(heaps) {
-    const nonEmptyHeapIndexes = heaps
+  getRandomMove(heaps) {
+    const nonEmptyHeaps = heaps
       .map((size, index) => ({ size, index }))
-      .filter((heap) => heap.size > 0)
-      .map((heap) => heap.index);
+      .filter((heap) => heap.size > 0);
 
-    if (nonEmptyHeapIndexes.length === 0) {
+    if (nonEmptyHeaps.length === 0) {
       return null;
     }
 
-    const heapIndex = nonEmptyHeapIndexes[Math.floor(Math.random() * nonEmptyHeapIndexes.length)];
-    const stonesToTake = Math.floor(Math.random() * heaps[heapIndex]) + 1;
+    const chosen = nonEmptyHeaps[Math.floor(Math.random() * nonEmptyHeaps.length)];
+    const maxTake = (nonEmptyHeaps.length === 1 && chosen.size > 1)
+      ? chosen.size - 1
+      : chosen.size;
+    const stonesToTake = Math.floor(Math.random() * maxTake) + 1;
 
     return {
-      heapIndex,
+      heapIndex: chosen.index,
       stonesToTake,
-      remaining: heaps[heapIndex] - stonesToTake,
+      remaining: heaps[chosen.index] - stonesToTake,
     };
   },
 
-  getMediumMove(heaps) {
-    if (Math.random() < 0.5) {
-      const misere = this.getMisereMove(heaps);
-      if (misere) return misere;
+  getSmartMove(heaps) {
+    const misere = this.getMisereMove(heaps);
+    if (misere) return misere;
 
-      const optimalMoves = this.findOptimalMoves(heaps);
-      if (optimalMoves.length > 0) {
-        return optimalMoves[Math.floor(Math.random() * optimalMoves.length)];
-      }
+    const optimalMoves = this.findOptimalMoves(heaps);
+    if (optimalMoves.length > 0) {
+      return optimalMoves[Math.floor(Math.random() * optimalMoves.length)];
     }
 
-    return this.getEasyMove(heaps);
+    return null;
+  },
+
+  getEasyMove(heaps) {
+    if (Math.random() < 0.25) {
+      const smart = this.getSmartMove(heaps);
+      if (smart) return smart;
+    }
+
+    return this.getRandomMove(heaps);
+  },
+
+  getMediumMove(heaps) {
+    if (Math.random() < 0.7) {
+      const smart = this.getSmartMove(heaps);
+      if (smart) return smart;
+    }
+
+    return this.getRandomMove(heaps);
   },
 
   getHardMove(heaps) {

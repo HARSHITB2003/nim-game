@@ -605,6 +605,8 @@ async function startGame() {
         mode,
         difficulty: mode === 'pve' ? difficulty : null,
         heaps: startingHeaps,
+        player1Name: state.playerNames.player1,
+        player2Name: state.playerNames.player2,
       }),
     });
 

@@ -49,9 +49,12 @@ function formatDifficulty(mode, difficulty) {
   return String(difficulty).charAt(0).toUpperCase() + String(difficulty).slice(1);
 }
 
-function formatResult(mode, winner) {
+function formatResult(game) {
+  const { mode, winner, winner_name } = game;
+
   if (mode !== 'pve') {
-    return winner ? `${winner} won` : '-';
+    if (!winner) return '-';
+    return winner_name ? `${winner_name} won` : `${winner} won`;
   }
 
   if (winner === 'player1' || winner === 'player') {
@@ -116,7 +119,7 @@ function renderRecentGames(games) {
     difficultyCell.textContent = formatDifficulty(game.mode, game.difficulty);
 
     const resultCell = document.createElement('td');
-    resultCell.textContent = formatResult(game.mode, game.winner);
+    resultCell.textContent = formatResult(game);
 
     const movesCell = document.createElement('td');
     movesCell.textContent = String(toNumber(game.total_moves));
