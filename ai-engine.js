@@ -1,30 +1,10 @@
 'use strict';
 
-/**
- * Nim AI utilities based on Sprague-Grundy theory.
- *
- * Why XOR works in Nim:
- * In normal Nim, each heap behaves like an independent impartial game whose Grundy value is
- * the heap size itself. The XOR (nim-sum) of all heap sizes is the combined game state value.
- * - nim-sum === 0: mathematically losing position (with perfect play).
- * - nim-sum !== 0: there exists at least one move that makes nim-sum become 0,
- *   putting the opponent into a losing position.
- */
 const NimAI = {
-  /**
-   * Returns the XOR of all heap values.
-   * @param {number[]} heaps
-   * @returns {number}
-   */
   nimSum(heaps) {
     return heaps.reduce((xor, h) => xor ^ h, 0);
   },
 
-  /**
-   * Finds all winning moves that turn the position into nim-sum 0.
-   * @param {number[]} heaps
-   * @returns {{ heapIndex: number, stonesToTake: number, remaining: number }[]}
-   */
   findOptimalMoves(heaps) {
     const nimSum = this.nimSum(heaps);
 
@@ -49,11 +29,29 @@ const NimAI = {
     return optimalMoves;
   },
 
-  /**
-   * Easy mode: random legal move.
-   * @param {number[]} heaps
-   * @returns {{ heapIndex: number, stonesToTake: number, remaining: number } | null}
-   */
+  getMisereMove(heaps) {
+    const largeHeaps = heaps.filter(h => h > 1);
+    const onesCount = heaps.filter(h => h === 1).length;
+
+    if (largeHeaps.length === 0) {
+      const idx = heaps.indexOf(1);
+      if (idx === -1) return null;
+      return { heapIndex: idx, stonesToTake: 1, remaining: 0 };
+    }
+
+    if (largeHeaps.length === 1) {
+      const idx = heaps.findIndex(h => h > 1);
+      const leaveAs = (onesCount % 2 === 0) ? 1 : 0;
+      return {
+        heapIndex: idx,
+        stonesToTake: heaps[idx] - leaveAs,
+        remaining: leaveAs,
+      };
+    }
+
+    return null;
+  },
+
   getEasyMove(heaps) {
     const nonEmptyHeapIndexes = heaps
       .map((size, index) => ({ size, index }))
@@ -74,30 +72,25 @@ const NimAI = {
     };
   },
 
-  /**
-   * Medium mode: 50% chance to play an optimal move when available.
-   * @param {number[]} heaps
-   * @returns {{ heapIndex: number, stonesToTake: number, remaining: number } | null}
-   */
   getMediumMove(heaps) {
-    const optimalMoves = this.findOptimalMoves(heaps);
+    if (Math.random() < 0.5) {
+      const misere = this.getMisereMove(heaps);
+      if (misere) return misere;
 
-    if (optimalMoves.length > 0 && Math.random() < 0.5) {
-      return optimalMoves[Math.floor(Math.random() * optimalMoves.length)];
+      const optimalMoves = this.findOptimalMoves(heaps);
+      if (optimalMoves.length > 0) {
+        return optimalMoves[Math.floor(Math.random() * optimalMoves.length)];
+      }
     }
 
     return this.getEasyMove(heaps);
   },
 
-  /**
-   * Hard mode: always play optimally when possible.
-   * If no optimal move exists, remove 1 from the largest heap.
-   * @param {number[]} heaps
-   * @returns {{ heapIndex: number, stonesToTake: number, remaining: number } | null}
-   */
   getHardMove(heaps) {
-    const optimalMoves = this.findOptimalMoves(heaps);
+    const misere = this.getMisereMove(heaps);
+    if (misere) return misere;
 
+    const optimalMoves = this.findOptimalMoves(heaps);
     if (optimalMoves.length > 0) {
       return optimalMoves[0];
     }
@@ -123,12 +116,6 @@ const NimAI = {
     };
   },
 
-  /**
-   * Dispatches AI move selection by difficulty.
-   * @param {number[]} heaps
-   * @param {string} difficulty
-   * @returns {{ heapIndex: number, stonesToTake: number, remaining: number } | null}
-   */
   getMove(heaps, difficulty) {
     const level = String(difficulty || '').toLowerCase();
 
@@ -143,16 +130,12 @@ const NimAI = {
     return this.getHardMove(heaps);
   },
 
-  /**
-   * Provides a user-facing hint based on nim-sum analysis.
-   * @param {number[]} heaps
-   * @returns {{ type: 'winning' | 'losing', message: string, suggestion: { heapIndex: number, stonesToTake: number } | null }}
-   */
   getHint(heaps) {
     const nimSum = this.nimSum(heaps);
+    const optimalMoves = this.findOptimalMoves(heaps);
 
-    if (nimSum !== 0) {
-      const move = this.findOptimalMoves(heaps)[0];
+    if (nimSum !== 0 && optimalMoves.length > 0) {
+      const move = optimalMoves[0];
 
       return {
         type: 'winning',

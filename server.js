@@ -23,6 +23,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const activeGames = new Map();
 
+const DIFFICULTY_DELAYS = {
+  easy: { min: 200, max: 500 },
+  medium: { min: 600, max: 1200 },
+  hard: { min: 1000, max: 2000 },
+};
+
+function aiDelay(difficulty) {
+  const range = DIFFICULTY_DELAYS[difficulty] || DIFFICULTY_DELAYS.easy;
+  const ms = range.min + Math.floor(Math.random() * (range.max - range.min));
+  return new Promise((resolve) => { setTimeout(resolve, ms); });
+}
+
 function parseGameId(rawId) {
   const id = Number(rawId);
   return Number.isInteger(id) && id > 0 ? id : null;
@@ -73,7 +85,7 @@ app.post('/api/game/start', (req, res) => {
   }
 });
 
-app.post('/api/game/:id/move', (req, res) => {
+app.post('/api/game/:id/move', async (req, res) => {
   try {
     const gameLookup = getActiveGameEntry(req, res);
     if (!gameLookup) {
@@ -111,6 +123,7 @@ app.post('/api/game/:id/move', (req, res) => {
       const aiChoice = NimAI.getMove(game.heaps, difficulty);
 
       if (aiChoice) {
+        await aiDelay(difficulty);
         const aiResult = game.makeMove(aiChoice.heapIndex, aiChoice.stonesToTake);
 
         if (aiResult.valid) {
