@@ -9,13 +9,15 @@ const { NimAI } = require('./ai-engine');
 const {
   createGame,
   saveMove,
+  undoMoves,
   completeGame,
   getStats,
+  cleanupAbandoned,
   resetStats,
 } = require('./database');
 
 const app = express();
-const PORT = 3000;
+const PORT = 3005;
 
 app.use(cors());
 app.use(express.json());
@@ -56,6 +58,14 @@ function getActiveGameEntry(req, res) {
 
   return { gameId, entry };
 }
+
+// Clean up abandoned games on startup
+try {
+  const cleaned = cleanupAbandoned();
+  if (cleaned > 0) {
+    console.log(`Cleaned up ${cleaned} abandoned game(s) from database.`);
+  }
+} catch (_) { /* ignore */ }
 
 app.post('/api/game/start', (req, res) => {
   try {
@@ -180,7 +190,7 @@ app.post('/api/game/:id/undo', (req, res) => {
       return;
     }
 
-    const { entry } = gameLookup;
+    const { gameId, entry } = gameLookup;
     const { game, mode } = entry;
 
     const firstUndo = game.undo();
@@ -197,6 +207,9 @@ app.post('/api/game/:id/undo', (req, res) => {
         finalUndo = secondUndo;
       }
     }
+
+    // Sync the database: delete moves that were undone
+    undoMoves(gameId, game.moveHistory.length);
 
     res.json({
       success: true,
@@ -260,6 +273,10 @@ app.post('/api/stats/reset', (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Nim server running on http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Nim server running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;

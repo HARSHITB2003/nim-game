@@ -1,3 +1,6 @@
 node_modules/
 nim-game.db
+nim-game.db-shm
+nim-game.db-wal
 .planning/
+.vercel
