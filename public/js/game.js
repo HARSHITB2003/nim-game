@@ -6,7 +6,6 @@ const mode = (params.get('mode') || 'pvp').toLowerCase();
 const difficulty = (params.get('difficulty') || 'easy').toLowerCase();
 const startingHeaps = parseHeaps(params.get('heaps'));
 
-const modeText = document.getElementById('modeText');
 const difficultyText = document.getElementById('difficultyText');
 const moveCounter = document.getElementById('moveCounter');
 const turnBanner = document.getElementById('turnBanner');
@@ -23,7 +22,7 @@ const timerEnabledInput = document.getElementById('timerEnabledInput');
 const turnTimerBar = document.getElementById('turnTimerBar');
 const turnTimerText = document.getElementById('turnTimerText');
 
-const toast = document.getElementById('toast');
+const popup = document.getElementById('popup');
 
 const gameOverOverlay = document.getElementById('gameOverOverlay');
 const gameOverTitle = document.getElementById('gameOverTitle');
@@ -44,9 +43,11 @@ const sounds = window.NimSounds || {};
 const TURN_TIMER_MS = 30000;
 const TIMER_PREF_KEY = 'nim.timer.enabled';
 
+/* ---------- local game instance ---------- */
+let game = null;
+
 const state = {
   started: false,
-  gameId: null,
   heaps: [],
   currentPlayer: 'player1',
   gameOver: false,
@@ -75,12 +76,10 @@ function parseHeaps(heapsParam) {
   if (!heapsParam) {
     return [1, 3, 5, 7];
   }
-
   const heaps = heapsParam
     .split(',')
     .map((value) => Number(value.trim()))
     .filter((value) => Number.isInteger(value) && value > 0);
-
   return heaps.length > 0 ? heaps : [1, 3, 5, 7];
 }
 
@@ -90,103 +89,77 @@ function wait(ms) {
   });
 }
 
-function nimSum(heaps) {
-  return heaps.reduce((xor, heap) => xor ^ heap, 0);
-}
-
 function playerLabel(player) {
   return player === 'player2' ? state.playerNames.player2 : state.playerNames.player1;
 }
 
-function isHumanPlayer(player) {
-  if (mode === 'pve') {
-    return player === 'player1';
-  }
-  return player === 'player1' || player === 'player2';
-}
+function showPopup(message) {
+  popup.textContent = message;
+  popup.hidden = false;
+  popup.classList.remove('show');
+  void popup.offsetWidth;
+  popup.classList.add('show');
 
-function formatModeLabel(value) {
-  return value === 'pve' ? 'Player vs AI' : 'Player vs Player';
-}
-
-function showToast(message) {
-  toast.textContent = message;
-  toast.hidden = false;
-  toast.classList.remove('show');
-  void toast.offsetWidth;
-  toast.classList.add('show');
-
-  window.clearTimeout(showToast.timeoutId);
-  showToast.timeoutId = window.setTimeout(() => {
-    toast.classList.remove('show');
+  window.clearTimeout(showPopup.timeoutId);
+  showPopup.timeoutId = window.setTimeout(() => {
+    popup.classList.remove('show');
     window.setTimeout(() => {
-      toast.hidden = true;
+      popup.hidden = true;
     }, 260);
   }, 2800);
 }
 
 function updateHeader() {
-  modeText.textContent = `Mode: ${formatModeLabel(mode)}`;
-  difficultyText.textContent = `Difficulty: ${mode === 'pve' ? difficulty : 'N/A'}`;
+  const difficultyCapitalized = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+  difficultyText.textContent = mode === 'pve' ? `Difficulty: ${difficultyCapitalized}` : 'Player vs Player';
   moveCounter.textContent = String(state.moveHistory.length);
 }
 
 function updateTurnBanner() {
-  turnBanner.classList.remove('thinking');
+  turnBanner.classList.remove('thinking', 'player1-turn', 'player2-turn');
 
   if (!state.started) {
     turnBanner.textContent = 'Enter names to begin';
     return;
   }
-
   if (state.gameOver) {
     turnBanner.textContent = `${playerLabel(state.winner)} wins!`;
     return;
   }
-
   if (state.thinking) {
     turnBanner.classList.add('thinking');
     turnBanner.innerHTML = '<span class="spinner" aria-hidden="true"></span>AI is thinking...';
     return;
   }
-
+  if (mode === 'pvp') {
+    turnBanner.classList.add(state.currentPlayer === 'player1' ? 'player1-turn' : 'player2-turn');
+  }
   turnBanner.textContent = `${playerLabel(state.currentPlayer)} turn`;
 }
 
 function updateConfirmButton() {
-  const shouldShow = !!state.selected && !state.busy && !state.gameOver;
-  confirmMoveBtn.hidden = !shouldShow;
+  confirmMoveBtn.hidden = !(state.selected && !state.busy && !state.gameOver);
 }
 
 function updateTimerUi() {
   if (!state.timer.enabled) {
-    turnTimerText.textContent = 'Off';
+    turnTimerText.textContent = '';
     turnTimerBar.style.transform = 'scaleX(0)';
     turnTimerBar.classList.remove('warning', 'danger');
     return;
   }
-
   const seconds = Math.ceil(state.timer.remainingMs / 1000);
   const ratio = Math.max(0, Math.min(1, state.timer.remainingMs / TURN_TIMER_MS));
-
   turnTimerText.textContent = `${seconds}s`;
   turnTimerBar.style.transform = `scaleX(${ratio})`;
   turnTimerBar.classList.remove('warning', 'danger');
-
-  if (seconds <= 5) {
-    turnTimerBar.classList.add('danger');
-  } else if (seconds <= 15) {
-    turnTimerBar.classList.add('warning');
-  }
+  if (seconds <= 5) turnTimerBar.classList.add('danger');
+  else if (seconds <= 15) turnTimerBar.classList.add('warning');
 }
 
 function setSelection(heapIndex, stonesToTake) {
   state.selected = { heapIndex, stonesToTake };
-
-  if (typeof sounds.playClickSound === 'function') {
-    sounds.playClickSound();
-  }
-
+  sounds.playClickSound();
   renderBoard();
   updateConfirmButton();
 }
@@ -198,20 +171,13 @@ function clearSelection() {
 }
 
 function canInteractWithBoard() {
-  if (!state.started || state.busy || state.gameOver) {
-    return false;
-  }
-
-  if (mode === 'pve') {
-    return state.currentPlayer === 'player1';
-  }
-
+  if (!state.started || state.busy || state.gameOver) return false;
+  if (mode === 'pve') return state.currentPlayer === 'player1';
   return true;
 }
 
 function renderBoard() {
   gameBoard.innerHTML = '';
-
   state.heaps.forEach((heapSize, heapIndex) => {
     const row = document.createElement('div');
     row.className = 'heap-row';
@@ -227,7 +193,6 @@ function renderBoard() {
     if (heapSize === 0) {
       const empty = document.createElement('span');
       empty.className = 'empty-row';
-      empty.textContent = 'Empty';
       stonesWrap.appendChild(empty);
     } else {
       for (let stoneIndex = 0; stoneIndex < heapSize; stoneIndex += 1) {
@@ -238,24 +203,16 @@ function renderBoard() {
           state.selected &&
           state.selected.heapIndex === heapIndex &&
           stoneIndex >= heapSize - state.selected.stonesToTake;
-
-        if (selected) {
-          stone.classList.add('selected');
-        }
+        if (selected) stone.classList.add('selected');
 
         stone.addEventListener('click', () => {
-          if (!canInteractWithBoard()) {
-            return;
-          }
-
-          const stonesToTake = heapSize - stoneIndex;
-          setSelection(heapIndex, stonesToTake);
+          if (!canInteractWithBoard()) return;
+          setSelection(heapIndex, heapSize - stoneIndex);
         });
 
         stonesWrap.appendChild(stone);
       }
     }
-
     row.appendChild(label);
     row.appendChild(stonesWrap);
     gameBoard.appendChild(row);
@@ -264,7 +221,6 @@ function renderBoard() {
 
 function renderHistory() {
   moveHistory.innerHTML = '';
-
   if (state.moveHistory.length === 0) {
     const placeholder = document.createElement('div');
     placeholder.className = 'history-item muted';
@@ -272,14 +228,12 @@ function renderHistory() {
     moveHistory.appendChild(placeholder);
     return;
   }
-
   state.moveHistory.forEach((move, index) => {
     const item = document.createElement('div');
     item.className = 'history-item';
     item.textContent = `${index + 1}. ${playerLabel(move.player)} took ${move.stonesToTake} from Row ${move.heapIndex + 1}.`;
     moveHistory.appendChild(item);
   });
-
   moveHistory.scrollTop = moveHistory.scrollHeight;
 }
 
@@ -287,90 +241,24 @@ function getPerformanceSummary() {
   const total = state.performance.humanMoves;
   const optimal = state.performance.optimalMoves;
   const percent = total > 0 ? Math.round((optimal / total) * 100) : 0;
-
   let rating = 'Novice';
-  if (percent >= 85) {
-    rating = 'Nim Master';
-  } else if (percent >= 60) {
-    rating = 'Strategist';
-  } else if (percent >= 30) {
-    rating = 'Intermediate';
-  }
-
+  if (percent >= 85) rating = 'Nim Master';
+  else if (percent >= 60) rating = 'Strategist';
+  else if (percent >= 30) rating = 'Intermediate';
   return { percent, rating };
 }
 
-function triggerConfetti() {
-  const pieces = [];
-  const colors = ['#00f5ff', '#34e6cf', '#ffd166', '#ff6f91', '#9bfffa', '#f68ef1'];
-  const duration = 3000;
-  const start = performance.now();
-
-  for (let i = 0; i < 150; i += 1) {
-    const piece = document.createElement('div');
-    piece.className = 'confetti-piece';
-    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-    document.body.appendChild(piece);
-
-    pieces.push({
-      el: piece,
-      x: Math.random() * window.innerWidth,
-      y: -Math.random() * 120,
-      vx: (Math.random() - 0.5) * 2.1,
-      vy: Math.random() * 1.8 + 1.4,
-      r: Math.random() * 360,
-      vr: (Math.random() - 0.5) * 10,
-    });
-  }
-
-  function frame(now) {
-    const t = Math.min(1, (now - start) / duration);
-
-    pieces.forEach((piece) => {
-      piece.x += piece.vx;
-      piece.vy += 0.05;
-      piece.y += piece.vy;
-      piece.r += piece.vr;
-      piece.el.style.transform = `translate(${piece.x}px, ${piece.y}px) rotate(${piece.r}deg)`;
-      piece.el.style.opacity = String(1 - t);
-    });
-
-    if (t < 1) {
-      window.requestAnimationFrame(frame);
-      return;
-    }
-
-    pieces.forEach((piece) => piece.el.remove());
-  }
-
-  window.requestAnimationFrame(frame);
-}
-
 function applyEndEffectsIfNeeded() {
-  if (!state.gameOver || state.endEffectsPlayed) {
-    return;
-  }
-
-  const winnerIsHuman = isHumanPlayer(state.winner);
-
+  if (!state.gameOver || state.endEffectsPlayed) return;
   if (mode === 'pve') {
-    if (winnerIsHuman) {
-      if (typeof sounds.playVictorySound === 'function') {
-        sounds.playVictorySound();
-      }
-      triggerConfetti();
-    } else if (typeof sounds.playDefeatSound === 'function') {
+    if (state.winner === 'player1') {
+      sounds.playVictorySound();
+    } else {
       sounds.playDefeatSound();
     }
   } else {
-    if (typeof sounds.playVictorySound === 'function') {
-      sounds.playVictorySound();
-    }
-    if (winnerIsHuman) {
-      triggerConfetti();
-    }
+    sounds.playVictorySound();
   }
-
   state.endEffectsPlayed = true;
 }
 
@@ -379,18 +267,13 @@ function renderGameOver() {
     gameOverOverlay.hidden = true;
     return;
   }
-
-  gameOverTitle.textContent = 'Game Over';
-
   let summary = `${playerLabel(state.winner)} wins this round.`;
   if (mode === 'pve') {
     const result = getPerformanceSummary();
     summary += `<br />You played ${result.percent}% optimally. Rating: <strong>${result.rating}</strong>.`;
   }
-
   gameOverText.innerHTML = summary;
   gameOverOverlay.hidden = false;
-
   applyEndEffectsIfNeeded();
 }
 
@@ -410,136 +293,46 @@ function applyMoveToHeaps(heaps, move) {
   return next;
 }
 
-function spawnStoneBurst(stoneElement) {
-  const rect = stoneElement.getBoundingClientRect();
-  const startX = rect.left + rect.width / 2;
-  const startY = rect.top + rect.height / 2;
-  const duration = 600;
-  const start = performance.now();
-  const colors = ['#8efffa', '#42f2ea', '#1bbec7'];
-  const particles = [];
-
-  for (let i = 0; i < 12; i += 1) {
-    const particle = document.createElement('div');
-    particle.className = 'remove-particle';
-    particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-    document.body.appendChild(particle);
-
-    const angle = Math.random() * Math.PI * 2;
-    const speed = Math.random() * 2 + 0.9;
-
-    particles.push({
-      el: particle,
-      x: startX,
-      y: startY,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 0.25,
-    });
-  }
-
-  function frame(now) {
-    const t = Math.min(1, (now - start) / duration);
-
-    particles.forEach((particle) => {
-      particle.x += particle.vx * 1.2;
-      particle.y += particle.vy * 1.2;
-      particle.vy += 0.02;
-
-      particle.el.style.transform = `translate(${particle.x}px, ${particle.y}px)`;
-      particle.el.style.opacity = String(1 - t);
-    });
-
-    if (t < 1) {
-      window.requestAnimationFrame(frame);
-      return;
-    }
-
-    particles.forEach((particle) => particle.el.remove());
-  }
-
-  window.requestAnimationFrame(frame);
-}
-
-async function animateRemoval(move) {
+async function animateRemoval(move, isAI) {
   const row = document.querySelector(`.heap-row[data-heap-index="${move.heapIndex}"]`);
-  if (!row) {
-    return;
-  }
-
+  if (!row) return;
   const stones = Array.from(row.querySelectorAll('.stone'));
   const targets = stones.slice(Math.max(0, stones.length - move.stonesToTake));
 
-  if (typeof sounds.playRemoveSound === 'function') {
-    sounds.playRemoveSound();
+  if (isAI) {
+    targets.forEach((stone) => stone.classList.add('selected'));
+    await wait(500);
   }
 
+  sounds.playRemoveSound();
   targets.forEach((stone, index) => {
-    spawnStoneBurst(stone);
+    stone.classList.remove('selected');
     stone.style.setProperty('--remove-delay', `${index * 20}ms`);
     stone.classList.add('removing');
   });
-
   await wait(420);
 }
 
 function evaluateHumanMove(heapsBefore, move) {
-  if (mode !== 'pve' || state.currentPlayer !== 'player1') {
-    return;
-  }
-
-  const before = nimSum(heapsBefore);
+  if (mode !== 'pve' || state.currentPlayer !== 'player1') return;
+  const before = window.NimAI.nimSum(heapsBefore);
   const after = applyMoveToHeaps(heapsBefore, move);
   state.performance.humanMoves += 1;
-  if (before !== 0 && nimSum(after) === 0) {
+  if (before !== 0 && window.NimAI.nimSum(after) === 0) {
     state.performance.optimalMoves += 1;
   }
-}
-
-function recomputePerformanceFromHistory() {
-  if (mode !== 'pve') {
-    return;
-  }
-
-  let heapsCursor = [...startingHeaps];
-  state.performance.humanMoves = 0;
-  state.performance.optimalMoves = 0;
-
-  state.moveHistory.forEach((move) => {
-    const normalizedMove = {
-      heapIndex: move.heapIndex,
-      stonesToTake: move.stonesToTake,
-    };
-
-    if (move.player === 'player1') {
-      state.performance.humanMoves += 1;
-      const after = applyMoveToHeaps(heapsCursor, normalizedMove);
-      if (nimSum(after) === 0) {
-        state.performance.optimalMoves += 1;
-      }
-      heapsCursor = after;
-      return;
-    }
-
-    heapsCursor = applyMoveToHeaps(heapsCursor, normalizedMove);
-  });
 }
 
 function getRandomValidMove() {
   const options = state.heaps
     .map((heap, heapIndex) => ({ heap, heapIndex }))
-    .filter((row) => row.heap > 0);
-
-  if (options.length === 0) {
-    return null;
-  }
-
-  const row = options[Math.floor(Math.random() * options.length)];
-  return {
-    heapIndex: row.heapIndex,
-    stonesToTake: Math.floor(Math.random() * row.heap) + 1,
-  };
+    .filter((r) => r.heap > 0);
+  if (options.length === 0) return null;
+  const r = options[Math.floor(Math.random() * options.length)];
+  return { heapIndex: r.heapIndex, stonesToTake: Math.floor(Math.random() * r.heap) + 1 };
 }
 
+/* ---------- timer ---------- */
 function stopTurnTimer() {
   if (state.timer.intervalId) {
     window.clearInterval(state.timer.intervalId);
@@ -548,33 +341,23 @@ function stopTurnTimer() {
 }
 
 function shouldTimerRun() {
-  if (!state.timer.enabled || !state.started || state.gameOver || state.busy || state.thinking) {
-    return false;
-  }
-
-  if (mode === 'pve' && state.currentPlayer === 'player2') {
-    return false;
-  }
-
+  if (!state.timer.enabled || !state.started || state.gameOver || state.busy || state.thinking) return false;
+  if (mode === 'pve' && state.currentPlayer === 'player2') return false;
   return true;
 }
 
 function startTurnTimer() {
   stopTurnTimer();
-
   if (!shouldTimerRun()) {
     state.timer.remainingMs = TURN_TIMER_MS;
     updateTimerUi();
     return;
   }
-
   state.timer.remainingMs = TURN_TIMER_MS;
   updateTimerUi();
-
   state.timer.intervalId = window.setInterval(() => {
     state.timer.remainingMs = Math.max(0, state.timer.remainingMs - 100);
     updateTimerUi();
-
     if (state.timer.remainingMs <= 0) {
       stopTurnTimer();
       handleTimerExpired();
@@ -583,224 +366,166 @@ function startTurnTimer() {
 }
 
 async function handleTimerExpired() {
-  if (!shouldTimerRun()) {
-    return;
-  }
-
+  if (!shouldTimerRun()) return;
   const move = getRandomValidMove();
-  if (!move) {
-    return;
-  }
-
-  showToast('Time up. Random move played automatically.');
+  if (!move) return;
+  showPopup('Time up. Random move played automatically.');
   await submitMove(move);
 }
 
-async function startGame() {
+/* ---------- save completed game to server ---------- */
+function saveGameResult() {
   try {
-    const response = await fetch('/api/game/start', {
+    fetch('/api/game/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         mode,
         difficulty: mode === 'pve' ? difficulty : null,
         heaps: startingHeaps,
+        winner: game.winner,
+        winnerName: state.playerNames[game.winner] || game.winner,
         player1Name: state.playerNames.player1,
         player2Name: state.playerNames.player2,
+        totalMoves: game.moveHistory.length,
       }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Could not start game.');
-    }
-
-    const data = await response.json();
-
-    state.started = true;
-    state.gameId = data.gameId;
-    state.heaps = [...data.heaps];
-    state.currentPlayer = data.currentPlayer;
-    state.gameOver = false;
-    state.winner = null;
-    state.moveHistory = [];
-    state.selected = null;
-    state.endEffectsPlayed = false;
-    state.performance.humanMoves = 0;
-    state.performance.optimalMoves = 0;
-
-    renderAll();
-    startTurnTimer();
-  } catch (error) {
-    showToast(error.message || 'Failed to start game.');
-  }
+    }).catch(() => {});
+  } catch (_) { /* stats are non-critical */ }
 }
 
-async function refreshStateFromServer() {
-  const response = await fetch(`/api/game/${state.gameId}/state`);
+/* ---------- game actions ---------- */
+function syncState() {
+  state.heaps = [...game.heaps];
+  state.currentPlayer = game.currentPlayer;
+  state.gameOver = game.gameOver;
+  state.winner = game.winner;
+  state.moveHistory = game.moveHistory.map((m) => ({
+    player: m.player,
+    heapIndex: m.heapIndex,
+    stonesToTake: m.stonesToTake,
+  }));
+}
 
-  if (!response.ok) {
-    throw new Error('Could not refresh game state.');
-  }
+function startGame() {
+  game = new window.NimGame(startingHeaps);
 
-  const latest = await response.json();
-  state.heaps = [...latest.heaps];
-  state.currentPlayer = latest.currentPlayer;
-  state.gameOver = latest.gameOver;
-  state.winner = latest.winner;
-  state.moveHistory = Array.isArray(latest.moveHistory) ? [...latest.moveHistory] : [];
+  state.started = true;
+  state.endEffectsPlayed = false;
   state.selected = null;
+  state.performance.humanMoves = 0;
+  state.performance.optimalMoves = 0;
 
-  recomputePerformanceFromHistory();
+  syncState();
+  renderAll();
+  startTurnTimer();
 }
 
-async function submitMove(forcedMove = null) {
-  if (state.busy || state.gameOver) {
-    return;
-  }
+async function submitMove(forcedMove) {
+  if (state.busy || state.gameOver) return;
 
-  const selectedMove = forcedMove ? { ...forcedMove } : state.selected ? { ...state.selected } : null;
-  if (!selectedMove) {
-    return;
-  }
+  const selectedMove = forcedMove
+    ? { ...forcedMove }
+    : state.selected
+      ? { ...state.selected }
+      : null;
+  if (!selectedMove) return;
 
   state.busy = true;
   state.selected = null;
   updateConfirmButton();
   stopTurnTimer();
 
-  const heapsBefore = [...state.heaps];
+  const heapsBefore = [...game.heaps];
 
-  try {
-    const response = await fetch(`/api/game/${state.gameId}/move`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(selectedMove),
-    });
+  evaluateHumanMove(heapsBefore, selectedMove);
 
-    const data = await response.json();
-
-    if (!response.ok || data.valid === false) {
-      showToast(data.reason || data.error || 'Move rejected.');
-      return;
-    }
-
-    evaluateHumanMove(heapsBefore, selectedMove);
-
-    await animateRemoval(selectedMove);
-
-    if (data.playerMove) {
-      state.moveHistory.push(data.playerMove);
-    }
-
-    state.heaps = applyMoveToHeaps(heapsBefore, selectedMove);
-    state.currentPlayer = mode === 'pve' ? 'player2' : data.currentPlayer;
-
-    if (data.aiMove) {
-      state.thinking = true;
-      renderAll();
-      await wait(800);
-
-      if (typeof sounds.playAISound === 'function') {
-        sounds.playAISound();
-      }
-
-      await animateRemoval(data.aiMove);
-      state.thinking = false;
-      state.moveHistory.push(data.aiMove);
-    }
-
-    state.heaps = [...data.heaps];
-    state.currentPlayer = data.currentPlayer;
-    state.gameOver = data.gameOver;
-    state.winner = data.winner;
-
-    renderAll();
-  } catch (error) {
-    showToast(error.message || 'Failed to submit move.');
-  } finally {
-    state.thinking = false;
+  const playerResult = game.makeMove(selectedMove.heapIndex, selectedMove.stonesToTake);
+  if (!playerResult.valid) {
+    showPopup(playerResult.reason || 'Invalid move.');
     state.busy = false;
     renderAll();
     startTurnTimer();
-  }
-}
-
-async function undoMove() {
-  if (state.busy || state.gameOver || !state.gameId) {
     return;
   }
 
-  state.busy = true;
+  await animateRemoval(selectedMove);
+  syncState();
+  renderAll();
+
+  /* --- AI turn --- */
+  if (mode === 'pve' && !game.gameOver && game.currentPlayer === 'player2') {
+    state.thinking = true;
+    renderAll();
+
+    const aiChoice = window.NimAI.getMove(game.heaps, difficulty);
+    const thinkTime = { easy: 400, medium: 800, hard: 1200 }[difficulty] || 800;
+    await wait(thinkTime);
+
+    if (aiChoice) {
+      const aiResult = game.makeMove(aiChoice.heapIndex, aiChoice.stonesToTake);
+      if (aiResult.valid) {
+        sounds.playAISound();
+        await animateRemoval(aiChoice, true);
+      }
+    }
+
+    state.thinking = false;
+    syncState();
+  }
+
+  if (game.gameOver) {
+    saveGameResult();
+  }
+
+  state.busy = false;
+  renderAll();
+  startTurnTimer();
+}
+
+function undoMove() {
+  if (state.busy || state.gameOver || !game) return;
   clearSelection();
   stopTurnTimer();
 
-  try {
-    const response = await fetch(`/api/game/${state.gameId}/undo`, {
-      method: 'POST',
-    });
-
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      showToast(data.error || 'Nothing to undo.');
-      return;
-    }
-
-    await refreshStateFromServer();
-    renderAll();
-  } catch (error) {
-    showToast(error.message || 'Undo failed.');
-  } finally {
-    state.busy = false;
-    renderAll();
-    startTurnTimer();
+  // In PvE, undo both the AI's move and the human's move together
+  const undoCount = mode === 'pve' ? 2 : 1;
+  let undone = 0;
+  for (let i = 0; i < undoCount; i += 1) {
+    if (!game.undo()) break;
+    undone += 1;
   }
-}
 
-async function requestHint() {
-  if (!state.gameId) {
+  if (undone === 0) {
+    showPopup('Nothing to undo.');
+    startTurnTimer();
     return;
   }
 
-  try {
-    const response = await fetch(`/api/game/${state.gameId}/hint`);
-    if (!response.ok) {
-      throw new Error('Could not get hint.');
-    }
+  syncState();
+  renderAll();
+  startTurnTimer();
+}
 
-    const hint = await response.json();
-    showToast(hint.message || 'No hint available.');
-
-    if (hint.suggestion && typeof hint.suggestion.heapIndex === 'number') {
-      pulseSuggestedStones(hint.suggestion.heapIndex, hint.suggestion.stonesToTake);
-    }
-  } catch (error) {
-    showToast(error.message || 'Hint failed.');
+function requestHint() {
+  if (!game || state.gameOver) return;
+  const hint = window.NimAI.getHint(game.heaps);
+  showPopup(hint.message || 'No hint available.');
+  if (hint.suggestion && typeof hint.suggestion.heapIndex === 'number') {
+    pulseSuggestedStones(hint.suggestion.heapIndex, hint.suggestion.stonesToTake);
   }
 }
 
 function pulseSuggestedStones(heapIndex, stonesToTake) {
   const row = document.querySelector(`.heap-row[data-heap-index="${heapIndex}"]`);
-  if (!row) {
-    return;
-  }
-
+  if (!row) return;
   const stones = Array.from(row.querySelectorAll('.stone'));
   const targets = stones.slice(Math.max(0, stones.length - stonesToTake));
-
-  targets.forEach((stone) => stone.classList.add('hint-pulse'));
-  window.setTimeout(() => {
-    targets.forEach((stone) => stone.classList.remove('hint-pulse'));
-  }, 1200);
+  targets.forEach((s) => s.classList.add('hint-pulse'));
+  window.setTimeout(() => targets.forEach((s) => s.classList.remove('hint-pulse')), 1200);
 }
 
-function goToMenu() {
-  window.location.href = 'index.html';
-}
-
-function restartGame() {
-  window.location.href = `game.html?${params.toString()}`;
-}
+function goToMenu() { window.location.href = 'index.html'; }
+function restartGame() { window.location.href = `game.html?${params.toString()}`; }
 
 function setupNameModal() {
   if (mode === 'pve') {
@@ -810,13 +535,12 @@ function setupNameModal() {
     player1NameLabel.textContent = 'Player 1 Name';
   }
 
-  startMatchBtn.addEventListener('click', async () => {
+  startMatchBtn.addEventListener('click', () => {
     state.playerNames.player1 = player1NameInput.value.trim() || 'Player 1';
     state.playerNames.player2 = mode === 'pve' ? 'NIM-AI' : player2NameInput.value.trim() || 'Player 2';
-
     nameModal.style.display = 'none';
     gameContent.style.display = 'block';
-    await startGame();
+    startGame();
   });
 }
 
@@ -827,10 +551,8 @@ function setupTimerToggle() {
   timerEnabledInput.addEventListener('change', () => {
     state.timer.enabled = timerEnabledInput.checked;
     window.sessionStorage.setItem(TIMER_PREF_KEY, state.timer.enabled ? '1' : '0');
-
-    if (state.timer.enabled) {
-      startTurnTimer();
-    } else {
+    if (state.timer.enabled) startTurnTimer();
+    else {
       stopTurnTimer();
       state.timer.remainingMs = TURN_TIMER_MS;
       updateTimerUi();
@@ -841,10 +563,7 @@ function setupTimerToggle() {
 backToMenuBtn.addEventListener('click', goToMenu);
 overlayBackBtn.addEventListener('click', goToMenu);
 playAgainBtn.addEventListener('click', restartGame);
-
-confirmMoveBtn.addEventListener('click', () => {
-  submitMove();
-});
+confirmMoveBtn.addEventListener('click', () => submitMove());
 undoBtn.addEventListener('click', undoMove);
 hintBtn.addEventListener('click', requestHint);
 newGameBtn.addEventListener('click', restartGame);

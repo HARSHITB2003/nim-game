@@ -2,10 +2,7 @@
 
 class NimGame {
   constructor(heapSizes) {
-    const heaps = Array.isArray(heapSizes) ? [...heapSizes] : [];
-
-    this.initialHeaps = [...heaps];
-    this.heaps = [...heaps];
+    this.heaps = Array.isArray(heapSizes) ? [...heapSizes] : [];
     this.currentPlayer = 'player1';
     this.moveHistory = [];
     this.gameOver = false;
@@ -20,15 +17,12 @@ class NimGame {
     if (this.gameOver) {
       return { valid: false, reason: 'Game is already over.' };
     }
-
     if (!Number.isInteger(heapIndex) || heapIndex < 0 || heapIndex >= this.heaps.length) {
       return { valid: false, reason: 'Invalid heap index.' };
     }
-
     if (!Number.isInteger(stonesToTake) || stonesToTake < 1) {
       return { valid: false, reason: 'stonesToTake must be at least 1.' };
     }
-
     if (this.heaps[heapIndex] < stonesToTake) {
       return { valid: false, reason: 'Not enough stones in selected heap.' };
     }
@@ -44,7 +38,7 @@ class NimGame {
     this.moveHistory.push(move);
     this.heaps[heapIndex] -= stonesToTake;
 
-    if (this.heaps.every((heap) => heap === 0)) {
+    if (this.heaps.every((h) => h === 0)) {
       this.gameOver = true;
       this.winner = move.player;
     }
@@ -61,46 +55,14 @@ class NimGame {
   }
 
   undo() {
-    if (this.moveHistory.length === 0) {
-      return null;
-    }
-
+    if (this.moveHistory.length === 0) return null;
     const move = this.moveHistory.pop();
-
     this.heaps = [...move.heapsBefore];
     this.currentPlayer = move.player;
     this.gameOver = false;
     this.winner = null;
-
-    return {
-      heaps: [...this.heaps],
-      currentPlayer: this.currentPlayer,
-    };
-  }
-
-  getState() {
-    return {
-      heaps: [...this.heaps],
-      currentPlayer: this.currentPlayer,
-      gameOver: this.gameOver,
-      winner: this.winner,
-      moveHistory: this.moveHistory,
-      moveCount: this.moveHistory.length,
-    };
-  }
-
-  reset(newHeaps) {
-    const heaps = Array.isArray(newHeaps) ? [...newHeaps] : [...this.initialHeaps];
-
-    this.initialHeaps = [...heaps];
-    this.heaps = [...heaps];
-    this.currentPlayer = 'player1';
-    this.moveHistory = [];
-    this.gameOver = false;
-    this.winner = null;
+    return { heaps: [...this.heaps], currentPlayer: this.currentPlayer };
   }
 }
 
-module.exports = {
-  NimGame,
-};
+window.NimGame = NimGame;

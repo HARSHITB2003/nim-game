@@ -50,21 +50,14 @@ function formatDifficulty(mode, difficulty) {
 }
 
 function formatResult(game) {
-  const { mode, winner, winner_name } = game;
+  const { mode, winner } = game;
 
   if (mode !== 'pve') {
-    if (!winner) return '-';
-    return winner_name ? `${winner_name} won` : `${winner} won`;
+    return winner ? `${winner} won` : '-';
   }
 
-  if (winner === 'player1' || winner === 'player') {
-    return 'Win';
-  }
-
-  if (winner === 'player2' || winner === 'ai' || winner === 'computer') {
-    return 'Loss';
-  }
-
+  if (winner === 'player1') return 'Win';
+  if (winner === 'player2') return 'Loss';
   return 'Unknown';
 }
 

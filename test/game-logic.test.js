@@ -43,12 +43,12 @@ describe('NimGame.makeMove', () => {
   });
 });
 
-describe('NimGame win condition (misere)', () => {
-  it('player who takes last stone LOSES', () => {
+describe('NimGame win condition (normal play)', () => {
+  it('player who takes last stone WINS', () => {
     const game = new NimGame([1]);
     const result = game.makeMove(0, 1);
     assert.strictEqual(result.gameOver, true);
-    assert.strictEqual(result.winner, 'player2', 'player1 took last stone, so player2 wins');
+    assert.strictEqual(result.winner, 'player1', 'player1 took last stone, so player1 wins');
   });
 
   it('multi-heap game ends correctly', () => {
@@ -56,7 +56,7 @@ describe('NimGame win condition (misere)', () => {
     game.makeMove(0, 1);
     const result = game.makeMove(1, 1);
     assert.strictEqual(result.gameOver, true);
-    assert.strictEqual(result.winner, 'player1', 'player2 took last stone, so player1 wins');
+    assert.strictEqual(result.winner, 'player2', 'player2 took last stone, so player2 wins');
   });
 });
 

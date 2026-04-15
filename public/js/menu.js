@@ -8,12 +8,17 @@ const statsCard = document.getElementById('statsCard');
 const difficultyPanel = document.getElementById('difficultyPanel');
 const difficultyButtons = document.querySelectorAll('.difficulty-btn');
 
-const heapPreset = document.getElementById('heapPreset');
+const heapPresetBox = document.getElementById('heapPresetCustom');
 const customHeapWrap = document.getElementById('customHeapWrap');
 const customHeaps = document.getElementById('customHeaps');
 
+function getSelectedPreset() {
+  const selected = heapPresetBox.querySelector('.term-opt.selected');
+  return selected ? selected.dataset.value : '1,3,5,7';
+}
+
 function parseHeaps() {
-  const preset = heapPreset.value;
+  const preset = getSelectedPreset();
 
   if (preset !== 'custom') {
     return preset;
@@ -70,8 +75,8 @@ function onCardActivate(element, handler) {
   });
 }
 
-heapPreset.addEventListener('change', () => {
-  const isCustom = heapPreset.value === 'custom';
+heapPresetBox.addEventListener('preset-change', (e) => {
+  const isCustom = e.detail === 'custom';
   customHeapWrap.hidden = !isCustom;
   if (isCustom) {
     customHeaps.focus();

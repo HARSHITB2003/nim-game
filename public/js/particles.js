@@ -1,46 +1,90 @@
-'use strict';
+(function () {
+  'use strict';
 
-(function initBackgroundParticles() {
-  function randomBetween(min, max) {
-    return Math.random() * (max - min) + min;
+  var canvas, ctx, rows, cols, data;
+  var CHAR_W = 11, CHAR_H = 14;
+  var SCROLL_SPEED = 0.25;
+  var EDGE_FRACTION = 0.28;
+  var MAX_ALPHA = 0.22;
+  var offset = 0;
+
+  function buildData() {
+    var totalRows = (Math.floor(canvas.height / CHAR_H) + 2) * 2;
+    cols = Math.floor(canvas.width / CHAR_W);
+    data = [];
+    for (var r = 0; r < totalRows; r++) {
+      var row = [];
+      for (var c = 0; c < cols; c++) {
+        row.push(Math.random() > 0.5 ? '1' : '0');
+      }
+      data.push(row);
+    }
   }
 
-  function createParticles() {
-    const container = document.createElement('div');
-    container.className = 'bg-particles';
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    rows = Math.floor(canvas.height / CHAR_H) + 2;
+    buildData();
+    offset = 0;
+  }
 
-    for (let i = 0; i < 50; i += 1) {
-      const particle = document.createElement('span');
-      particle.className = 'bg-particle';
+  function tick() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = '10px "Share Tech Mono", "Courier New", monospace';
 
-      const size = randomBetween(2, 6);
-      const opacity = randomBetween(0.1, 0.3);
-      const x = randomBetween(0, 100);
-      const y = randomBetween(0, 100);
-      const drift = randomBetween(-45, 45);
-      const duration = randomBetween(15, 45);
-      const delay = randomBetween(-duration, 0);
-      const hue = Math.random() > 0.5 ? 'rgba(80, 246, 238, OPACITY)' : 'rgba(43, 209, 214, OPACITY)';
+    var rowOffset = Math.floor(offset / CHAR_H);
+    var pixelOffset = offset % CHAR_H;
+    var totalDataRows = data.length;
+    var edgeCols = Math.floor(cols * EDGE_FRACTION);
 
-      particle.style.width = `${size}px`;
-      particle.style.height = `${size}px`;
-      particle.style.left = `${x}%`;
-      particle.style.top = `${y}%`;
-      particle.style.opacity = String(opacity);
-      particle.style.setProperty('--drift', `${drift}px`);
-      particle.style.animationDuration = `${duration}s`;
-      particle.style.animationDelay = `${delay}s`;
-      particle.style.background = hue.replace('OPACITY', String(opacity));
+    for (var r = 0; r < rows + 1; r++) {
+      var rowIdx = (r + rowOffset) % totalDataRows;
+      var y = r * CHAR_H - pixelOffset;
 
-      container.appendChild(particle);
+      for (var c = 0; c < cols; c++) {
+        var leftDist  = c / edgeCols;
+        var rightDist = (cols - 1 - c) / edgeCols;
+        var edgeFactor = Math.min(leftDist, rightDist, 1);
+        var alpha = edgeFactor * edgeFactor * MAX_ALPHA;
+        if (alpha < 0.004) continue;
+
+        ctx.fillStyle = 'rgba(0,255,234,' + alpha.toFixed(3) + ')';
+        ctx.fillText(data[rowIdx][c], c * CHAR_W, y);
+      }
     }
 
-    document.body.prepend(container);
+    offset += SCROLL_SPEED;
+    requestAnimationFrame(tick);
+  }
+
+  function init() {
+    var container = document.createElement('div');
+    container.className = 'bg-particles';
+    container.setAttribute('aria-hidden', 'true');
+    container.style.cssText = 'position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden;';
+
+    canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;';
+
+    container.appendChild(canvas);
+    document.body.insertBefore(container, document.body.firstChild);
+
+    ctx = canvas.getContext('2d');
+    resize();
+
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(resize, 150);
+    });
+
+    tick();
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', createParticles, { once: true });
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    createParticles();
+    init();
   }
 })();

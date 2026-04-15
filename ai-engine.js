@@ -29,112 +29,43 @@ const NimAI = {
     return optimalMoves;
   },
 
-  getMisereMove(heaps) {
-    const largeHeaps = heaps.filter(h => h > 1);
-    const onesCount = heaps.filter(h => h === 1).length;
+  getRandomMove(heaps) {
+    const nonEmpty = heaps
+      .map((size, index) => ({ size, index }))
+      .filter((h) => h.size > 0);
 
-    if (largeHeaps.length === 0) {
-      const idx = heaps.indexOf(1);
-      if (idx === -1) return null;
-      return { heapIndex: idx, stonesToTake: 1, remaining: 0 };
-    }
+    if (nonEmpty.length === 0) return null;
 
-    if (largeHeaps.length === 1) {
-      const idx = heaps.findIndex(h => h > 1);
-      const leaveAs = (onesCount % 2 === 0) ? 1 : 0;
-      return {
-        heapIndex: idx,
-        stonesToTake: heaps[idx] - leaveAs,
-        remaining: leaveAs,
-      };
-    }
+    const { size, index } = nonEmpty[Math.floor(Math.random() * nonEmpty.length)];
+    const stonesToTake = Math.floor(Math.random() * size) + 1;
 
-    return null;
-  },
-
-  getAllMoves(heaps) {
-    const moves = [];
-    for (let i = 0; i < heaps.length; i += 1) {
-      for (let t = 1; t <= heaps[i]; t += 1) {
-        moves.push({ heapIndex: i, stonesToTake: t, remaining: heaps[i] - t });
-      }
-    }
-    return moves;
-  },
-
-  getSafeRandomMove(heaps) {
-    const allMoves = this.getAllMoves(heaps);
-    if (allMoves.length === 0) return null;
-
-    const safe = allMoves.filter(m => {
-      const after = [...heaps];
-      after[m.heapIndex] -= m.stonesToTake;
-      if (after.every(h => h === 0)) return false;
-      return this.nimSum(after) !== 0;
-    });
-
-    const pool = safe.length > 0 ? safe : allMoves;
-    return pool[Math.floor(Math.random() * pool.length)];
-  },
-
-  getSmartMove(heaps) {
-    const misere = this.getMisereMove(heaps);
-    if (misere) return misere;
-
-    const optimalMoves = this.findOptimalMoves(heaps);
-    if (optimalMoves.length > 0) {
-      return optimalMoves[Math.floor(Math.random() * optimalMoves.length)];
-    }
-
-    return null;
+    return { heapIndex: index, stonesToTake, remaining: size - stonesToTake };
   },
 
   getEasyMove(heaps) {
-    const smart = this.getSmartMove(heaps);
-    if (smart && Math.random() < 0.5) return smart;
-
-    return this.getSafeRandomMove(heaps) || smart;
+    return this.getRandomMove(heaps);
   },
 
   getMediumMove(heaps) {
-    const smart = this.getSmartMove(heaps);
-    if (smart && Math.random() < 0.85) return smart;
-
-    return this.getSafeRandomMove(heaps) || smart;
+    const optimalMoves = this.findOptimalMoves(heaps);
+    if (optimalMoves.length > 0 && Math.random() < 0.85) {
+      return optimalMoves[Math.floor(Math.random() * optimalMoves.length)];
+    }
+    return this.getRandomMove(heaps);
   },
 
   getHardMove(heaps) {
-    const misere = this.getMisereMove(heaps);
-    if (misere) return misere;
-
     const optimalMoves = this.findOptimalMoves(heaps);
     if (optimalMoves.length > 0) {
       return optimalMoves[0];
     }
 
-    const allMoves = this.getAllMoves(heaps);
-    if (allMoves.length === 0) return null;
+    // Losing position — take 1 from largest heap to give opponent most rope
+    const max = Math.max(...heaps);
+    const heapIndex = heaps.indexOf(max);
+    if (heapIndex === -1 || max === 0) return null;
 
-    let bestMove = allMoves[0];
-    let bestScore = -1;
-
-    for (const move of allMoves) {
-      const after = [...heaps];
-      after[move.heapIndex] -= move.stonesToTake;
-
-      if (after.every(h => h === 0)) continue;
-
-      const nonEmpty = after.filter(h => h > 0).length;
-      const maxHeap = Math.max(...after);
-      const score = nonEmpty * 10 + maxHeap;
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestMove = move;
-      }
-    }
-
-    return bestMove;
+    return { heapIndex, stonesToTake: 1, remaining: max - 1 };
   },
 
   getMove(heaps, difficulty) {

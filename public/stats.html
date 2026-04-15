@@ -7,64 +7,80 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/style.css" />
   </head>
-  <body>
+  <body class="theme-dark">
     <main class="stats-page">
-      <header class="stats-header glass-panel">
-        <div>
-          <h1>Statistics</h1>
-          <a href="index.html" class="back-link">Back to Menu</a>
-        </div>
+      <header class="stats-header panel">
+        <a href="index.html" class="back-link">Back to Menu</a>
+        <h1>Statistics</h1>
       </header>
 
       <section class="stats-row stats-overview" aria-label="Overview stats">
-        <article class="stat-card glass-panel">
+        <article class="stat-card panel">
           <div class="stat-value" id="totalGames">0</div>
           <div class="stat-label">Total Games Played</div>
         </article>
-        <article class="stat-card glass-panel">
+        <article class="stat-card panel">
           <div class="stat-value" id="pvpGames">0</div>
           <div class="stat-label">PvP Games</div>
         </article>
-        <article class="stat-card glass-panel">
+        <article class="stat-card panel">
           <div class="stat-value" id="pveGames">0</div>
           <div class="stat-label">vs AI Games</div>
         </article>
       </section>
 
-      <section class="stats-row difficulty-breakdown" aria-label="Difficulty breakdown">
-        <article class="difficulty-card glass-panel easy-accent">
+      <section
+        class="stats-row difficulty-breakdown"
+        aria-label="Difficulty breakdown"
+      >
+        <article class="difficulty-card panel easy-accent">
           <h2>vs Easy</h2>
-          <p><span id="easyWins">0</span> Wins / <span id="easyLosses">0</span> Losses</p>
-          <div class="rate-track"><div id="easyRateBar" class="rate-fill easy"></div></div>
+          <p>
+            <span id="easyWins">0</span> Wins /
+            <span id="easyLosses">0</span> Losses
+          </p>
+          <div class="rate-track">
+            <div id="easyRateBar" class="rate-fill easy"></div>
+          </div>
           <small id="easyRateText">Win Rate: 0%</small>
         </article>
 
-        <article class="difficulty-card glass-panel medium-accent">
+        <article class="difficulty-card panel medium-accent">
           <h2>vs Medium</h2>
-          <p><span id="mediumWins">0</span> Wins / <span id="mediumLosses">0</span> Losses</p>
-          <div class="rate-track"><div id="mediumRateBar" class="rate-fill medium"></div></div>
+          <p>
+            <span id="mediumWins">0</span> Wins /
+            <span id="mediumLosses">0</span> Losses
+          </p>
+          <div class="rate-track">
+            <div id="mediumRateBar" class="rate-fill medium"></div>
+          </div>
           <small id="mediumRateText">Win Rate: 0%</small>
         </article>
 
-        <article class="difficulty-card glass-panel hard-accent">
+        <article class="difficulty-card panel hard-accent">
           <h2>vs Hard</h2>
-          <p><span id="hardWins">0</span> Wins / <span id="hardLosses">0</span> Losses</p>
-          <div class="rate-track"><div id="hardRateBar" class="rate-fill hard"></div></div>
+          <p>
+            <span id="hardWins">0</span> Wins /
+            <span id="hardLosses">0</span> Losses
+          </p>
+          <div class="rate-track">
+            <div id="hardRateBar" class="rate-fill hard"></div>
+          </div>
           <small id="hardRateText">Win Rate: 0%</small>
         </article>
       </section>
 
-      <section class="average-moves glass-panel">
+      <section class="average-moves panel">
         <h2>Average Moves per Game</h2>
         <div class="avg-value" id="averageMoves">0.00</div>
       </section>
 
-      <section class="recent-games glass-panel">
+      <section class="recent-games panel">
         <h2>Recent Games</h2>
         <div class="table-wrap">
           <table>
@@ -83,11 +99,47 @@
       </section>
 
       <section class="stats-actions">
-        <button type="button" id="clearStatsBtn" class="btn danger">Clear All Stats</button>
+        <button type="button" id="clearStatsBtn" class="btn danger">
+          Clear All Stats
+        </button>
       </section>
     </main>
 
     <script src="js/particles.js" defer></script>
     <script src="js/stats.js" defer></script>
+
+    <!-- UNIVERSAL THEME LOADER (same as in game.html) -->
+    <script>
+      // Apply theme saved in localStorage (works across all pages)
+      (function () {
+        function applyTheme() {
+          const saved = localStorage.getItem("nim-theme");
+          const validThemes = ["dark", "green", "amber"];
+          const theme = validThemes.includes(saved) ? saved : "dark";
+
+          document.body.className = document.body.className
+            .replace(/theme-\w+/g, "")
+            .trim();
+          document.body.classList.add("theme-" + theme);
+        }
+
+        function setTheme(theme) {
+          if (!["dark", "green", "amber"].includes(theme)) return;
+
+          document.body.className = document.body.className
+            .replace(/theme-\w+/g, "")
+            .trim();
+          document.body.classList.add("theme-" + theme);
+          localStorage.setItem("nim-theme", theme);
+        }
+
+        // expose so your theme buttons can call it
+        window.applyTheme = applyTheme;
+        window.setTheme = setTheme;
+
+        // run on page load
+        applyTheme();
+      })();
+    </script>
   </body>
 </html>

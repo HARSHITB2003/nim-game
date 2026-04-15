@@ -1,7 +1,7 @@
 'use strict';
 
 const stepNodes = Array.from(document.querySelectorAll('.tutorial-step'));
-const stepCircles = Array.from(document.querySelectorAll('[data-step-circle]'));
+const stepSquares = Array.from(document.querySelectorAll('[data-step-square]'));
 
 const prevStepBtn = document.getElementById('prevStepBtn');
 const nextStepBtn = document.getElementById('nextStepBtn');
@@ -15,15 +15,14 @@ let miniHeaps = [1, 2, 3];
 function showStep(stepNumber) {
   currentStep = Math.max(1, Math.min(5, stepNumber));
 
-  // Required behavior: hide/show step content using display none and block.
   stepNodes.forEach((node) => {
     const nodeStep = Number(node.dataset.step);
     node.style.display = nodeStep === currentStep ? 'block' : 'none';
   });
 
-  stepCircles.forEach((circle) => {
-    const circleStep = Number(circle.dataset.stepCircle);
-    circle.classList.toggle('active', circleStep === currentStep);
+  stepSquares.forEach((square) => {
+    const squareStep = Number(square.dataset.stepSquare);
+    square.classList.toggle('active', squareStep === currentStep);
   });
 
   prevStepBtn.disabled = currentStep === 1;

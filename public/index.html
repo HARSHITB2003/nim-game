@@ -7,56 +7,93 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
     <main class="menu-page" role="main">
-      <section class="hero" aria-labelledby="title">
-        <h1 id="title" class="title">NIM</h1>
+      <section aria-labelledby="title">
+        <h1 id="title" class="title">NIM GAME</h1>
         <p class="subtitle">The Mathematical Strategy Game</p>
       </section>
 
       <section class="menu-cards" aria-label="Main menu options">
-        <article class="menu-card" id="pvpCard" tabindex="0" role="button" aria-label="Play Player versus Player">
-          <div class="card-icon" aria-hidden="true">⚔️</div>
+        <article
+          class="menu-card"
+          id="pvpCard"
+          tabindex="0"
+          role="button"
+          aria-label="Play Player versus Player"
+        >
           <h2>Player vs Player</h2>
           <p>Challenge a friend in local two-player mode.</p>
         </article>
 
-        <article class="menu-card" id="pveCard" tabindex="0" role="button" aria-label="Play Player versus AI">
-          <div class="card-icon" aria-hidden="true">🤖</div>
+        <article
+          class="menu-card"
+          id="pveCard"
+          tabindex="0"
+          role="button"
+          aria-label="Play Player versus AI"
+        >
           <h2>Player vs AI</h2>
           <p>Face an adaptive computer opponent.</p>
         </article>
 
-        <article class="menu-card" id="tutorialCard" tabindex="0" role="button" aria-label="Open tutorial">
-          <div class="card-icon" aria-hidden="true">📖</div>
+        <article
+          class="menu-card"
+          id="tutorialCard"
+          tabindex="0"
+          role="button"
+          aria-label="Open tutorial"
+        >
           <h2>Tutorial</h2>
           <p>Learn rules, tactics, and winning patterns.</p>
         </article>
 
-        <article class="menu-card" id="statsCard" tabindex="0" role="button" aria-label="Open statistics">
-          <div class="card-icon" aria-hidden="true">📊</div>
+        <article
+          class="menu-card"
+          id="statsCard"
+          tabindex="0"
+          role="button"
+          aria-label="Open statistics"
+        >
           <h2>Statistics</h2>
           <p>Track performance and game outcomes.</p>
         </article>
       </section>
 
-      <section class="difficulty-panel" id="difficultyPanel" aria-label="AI difficulty selector" hidden>
+      <section
+        class="difficulty-panel"
+        id="difficultyPanel"
+        aria-label="AI difficulty selector"
+        hidden
+      >
         <h3>Choose AI Difficulty</h3>
         <div class="difficulty-options">
-          <button type="button" class="difficulty-btn easy" data-difficulty="easy">
+          <button
+            type="button"
+            class="difficulty-btn easy"
+            data-difficulty="easy"
+          >
             <span class="badge">Easy</span>
             <span class="desc">Random Moves</span>
           </button>
-          <button type="button" class="difficulty-btn medium" data-difficulty="medium">
+          <button
+            type="button"
+            class="difficulty-btn medium"
+            data-difficulty="medium"
+          >
             <span class="badge">Medium</span>
             <span class="desc">Balanced Strategy</span>
           </button>
-          <button type="button" class="difficulty-btn hard" data-difficulty="hard">
+          <button
+            type="button"
+            class="difficulty-btn hard"
+            data-difficulty="hard"
+          >
             <span class="badge">Hard</span>
             <span class="desc">Optimal Play</span>
           </button>
@@ -66,15 +103,54 @@
       <section class="heap-config" aria-label="Heap configuration">
         <h3>Heap Configuration</h3>
         <div class="heap-controls">
-          <label for="heapPreset">Preset</label>
-          <select id="heapPreset" name="heapPreset">
-            <option value="1,3,5,7">Classic 1-3-5-7</option>
-            <option value="3,4,5">Simple 3-4-5</option>
-            <option value="2,5,6,8">Challenge 2-5-6-8</option>
-            <option value="custom">Custom heap sizes</option>
-          </select>
+          <label>Preset</label>
+          <div
+            class="term-select"
+            id="heapPresetCustom"
+            role="combobox"
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            tabindex="0"
+          >
+            <div class="term-select-val">Classic 1-3-5-7</div>
+            <div class="term-select-arrow">&#9660;</div>
+            <ul class="term-select-opts" role="listbox">
+              <li
+                class="term-opt selected"
+                data-value="1,3,5,7"
+                role="option"
+                aria-selected="true"
+              >
+                Classic 1-3-5-7
+              </li>
+              <li
+                class="term-opt"
+                data-value="3,4,5"
+                role="option"
+                aria-selected="false"
+              >
+                Simple 3-4-5
+              </li>
+              <li
+                class="term-opt"
+                data-value="2,5,6,8"
+                role="option"
+                aria-selected="false"
+              >
+                Challenge 2-5-6-8
+              </li>
+              <li
+                class="term-opt"
+                data-value="custom"
+                role="option"
+                aria-selected="false"
+              >
+                Custom heap sizes
+              </li>
+            </ul>
+          </div>
         </div>
-        <div class="heap-controls custom-input" id="customHeapWrap" hidden>
+        <div class="heap-controls" id="customHeapWrap" hidden>
           <label for="customHeaps">Custom</label>
           <input
             id="customHeaps"
@@ -86,6 +162,102 @@
           />
         </div>
       </section>
+
+      <section class="theme-panel" aria-label="Theme selector">
+        <h3>Visual Theme</h3>
+        <div class="theme-options">
+          <button type="button" class="theme-btn" data-theme="dark">
+            <span class="badge">Dark</span>
+            <span class="desc">Classic CRT</span>
+          </button>
+          <button type="button" class="theme-btn" data-theme="green">
+            <span class="badge">Green</span>
+            <span class="desc">Matrix CRT</span>
+          </button>
+          <button type="button" class="theme-btn" data-theme="amber">
+            <span class="badge">Amber</span>
+            <span class="desc">Vintage CRT</span>
+          </button>
+        </div>
+      </section>
+
+      <script>
+        (function () {
+          const box = document.getElementById("heapPresetCustom");
+          const val = box.querySelector(".term-select-val");
+          const opts = box.querySelectorAll(".term-opt");
+
+          function close() {
+            box.classList.remove("open");
+            box.setAttribute("aria-expanded", "false");
+          }
+
+          function open() {
+            box.classList.add("open");
+            box.setAttribute("aria-expanded", "true");
+          }
+
+          box.addEventListener("click", function (e) {
+            const opt = e.target.closest(".term-opt");
+            if (opt) {
+              opts.forEach((o) => {
+                o.classList.remove("selected");
+                o.setAttribute("aria-selected", "false");
+              });
+              opt.classList.add("selected");
+              opt.setAttribute("aria-selected", "true");
+              val.textContent = opt.textContent;
+              box.dispatchEvent(
+                new CustomEvent("preset-change", {
+                  detail: opt.dataset.value,
+                  bubbles: true,
+                }),
+              );
+              close();
+              return;
+            }
+            box.classList.contains("open") ? close() : open();
+          });
+
+          box.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              box.classList.contains("open") ? close() : open();
+            }
+            if (e.key === "Escape") close();
+          });
+
+          document.addEventListener("click", function (e) {
+            if (!box.contains(e.target)) close();
+          });
+
+          const themePanel = document.querySelector(".theme-panel");
+          if (!themePanel) return;
+
+          const themeButtons = themePanel.querySelectorAll(".theme-btn");
+
+          function setTheme(theme) {
+            document.body.className = document.body.className
+              .replace(/theme-\w+/g, "")
+              .trim();
+            document.body.classList.add("theme-" + theme);
+            localStorage.setItem("nim-theme", theme);
+          }
+
+          themeButtons.forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const theme = btn.dataset.theme;
+              if (theme) setTheme(theme);
+            });
+          });
+
+          // Restore last theme on page load
+          const saved = localStorage.getItem("nim-theme");
+          const validThemes = ["dark", "green", "amber"];
+          const initial = validThemes.includes(saved) ? saved : "dark";
+          setTheme(initial);
+        })();
+      </script>
     </main>
 
     <script src="js/particles.js" defer></script>

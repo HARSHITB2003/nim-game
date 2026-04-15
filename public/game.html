@@ -7,38 +7,51 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/style.css" />
   </head>
-  <body>
-    <div id="name-modal" class="name-modal-overlay">
-      <div class="name-modal glass-panel">
+  <body class="theme-dark">
+    <!-- name-modal, game-content, etc. all stay unchanged -->
+    <div id="name-modal">
+      <div class="name-modal panel">
         <h2>Enter Player Names</h2>
         <p class="name-modal-note">Set names before the match starts.</p>
         <div class="name-fields">
-          <label for="player1NameInput" id="player1NameLabel">Player 1 Name</label>
-          <input id="player1NameInput" type="text" value="Player 1" maxlength="24" />
+          <label for="player1NameInput" id="player1NameLabel"
+            >Player 1 Name</label
+          >
+          <input
+            id="player1NameInput"
+            type="text"
+            value="Player 1"
+            maxlength="24"
+          />
         </div>
         <div class="name-fields" id="player2NameWrap">
           <label for="player2NameInput">Player 2 Name</label>
-          <input id="player2NameInput" type="text" value="Player 2" maxlength="24" />
+          <input
+            id="player2NameInput"
+            type="text"
+            value="Player 2"
+            maxlength="24"
+          />
         </div>
-        <button type="button" id="startMatchBtn" class="btn primary">Start Match</button>
+        <button type="button" id="startMatchBtn" class="btn primary">
+          Start Match
+        </button>
       </div>
     </div>
 
     <div id="game-content">
       <main class="game-page">
-        <header class="game-header glass-panel">
-          <button type="button" id="backToMenuBtn" class="btn tertiary">Back to Menu</button>
-          <div class="game-meta">
-            <div class="meta-title">Current Game</div>
-            <div class="meta-values">
-              <span id="modeText">Mode: --</span>
-              <span id="difficultyText">Difficulty: --</span>
-            </div>
+        <header class="game-header panel">
+          <button type="button" id="backToMenuBtn" class="back-link">
+            Back to Menu
+          </button>
+          <div class="meta-values">
+            <span id="difficultyText">Difficulty: --</span>
           </div>
           <div class="move-counter-wrap">
             <span>Moves</span>
@@ -49,15 +62,29 @@
         <section class="game-layout">
           <section class="board-column">
             <div id="turnBanner" class="turn-banner">Loading game...</div>
-
-            <div id="gameBoard" class="game-board glass-panel" aria-live="polite"></div>
-
-            <div class="control-panel glass-panel">
-              <button type="button" id="undoBtn" class="btn secondary">↩️ Undo</button>
-              <button type="button" id="hintBtn" class="btn secondary">💡 Hint</button>
-              <button type="button" id="newGameBtn" class="btn secondary">New Game</button>
-              <button type="button" id="confirmMoveBtn" class="btn primary" hidden>Confirm Move</button>
-
+            <div
+              id="gameBoard"
+              class="game-board panel"
+              aria-live="polite"
+            ></div>
+            <div class="control-panel panel">
+              <button type="button" id="undoBtn" class="btn secondary">
+                Undo
+              </button>
+              <button type="button" id="hintBtn" class="btn secondary">
+                Hint
+              </button>
+              <button type="button" id="newGameBtn" class="btn secondary">
+                New Game
+              </button>
+              <button
+                type="button"
+                id="confirmMoveBtn"
+                class="btn primary"
+                hidden
+              >
+                Confirm Move
+              </button>
               <div class="timer-controls">
                 <label class="timer-toggle" for="timerEnabledInput">
                   <input type="checkbox" id="timerEnabledInput" />
@@ -73,29 +100,70 @@
             </div>
           </section>
 
-          <aside class="history-panel glass-panel">
+          <aside class="history-panel panel">
             <h2>Move History</h2>
             <div id="moveHistory" class="history-list"></div>
           </aside>
         </section>
       </main>
 
-      <div id="toast" class="toast" hidden></div>
+      <div id="popup" class="popup" hidden></div>
 
       <div id="gameOverOverlay" class="game-over-overlay" hidden>
-        <div class="overlay-card glass-panel">
+        <div class="overlay-card panel">
           <h2 id="gameOverTitle">Game Over</h2>
           <p id="gameOverText"></p>
           <div class="overlay-actions">
-            <button type="button" id="playAgainBtn" class="btn primary">Play Again</button>
-            <button type="button" id="overlayBackBtn" class="btn secondary">Back to Menu</button>
+            <button type="button" id="playAgainBtn" class="btn primary">
+              Play Again
+            </button>
+            <button type="button" id="overlayBackBtn" class="btn secondary">
+              Back to Menu
+            </button>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- existing scripts -->
     <script src="js/particles.js" defer></script>
     <script src="js/sounds.js" defer></script>
+    <script src="js/nim-game.js" defer></script>
+    <script src="js/nim-ai.js" defer></script>
     <script src="js/game.js" defer></script>
+
+    <!-- NEW: universal theme loader -->
+    <script>
+      // Apply theme saved in localStorage (works across all pages)
+      (function () {
+        function applyTheme() {
+          const saved = localStorage.getItem("nim-theme");
+          const validThemes = ["dark", "green", "amber"];
+          const theme = validThemes.includes(saved) ? saved : "dark";
+
+          document.body.className = document.body.className
+            .replace(/theme-\w+/g, "")
+            .trim();
+          document.body.classList.add("theme-" + theme);
+        }
+
+        function setTheme(theme) {
+          if (!["dark", "green", "amber"].includes(theme)) return;
+
+          document.body.className = document.body.className
+            .replace(/theme-\w+/g, "")
+            .trim();
+          document.body.classList.add("theme-" + theme);
+          localStorage.setItem("nim-theme", theme);
+        }
+
+        // expose so your theme buttons can call it
+        window.applyTheme = applyTheme;
+        window.setTheme = setTheme;
+
+        // run on page load
+        applyTheme();
+      })();
+    </script>
   </body>
 </html>
