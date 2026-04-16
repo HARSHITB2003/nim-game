@@ -427,6 +427,11 @@ body {
   position: relative;
   transition: background 160ms ease, border-color 160ms ease;
   isolation: isolate;
+  z-index: 5;
+}
+
+.heap-config:has(.term-select.open) {
+  z-index: 60;
 }
 
 .heap-config::after {
