@@ -53,12 +53,18 @@ function formatResult(game) {
   const { mode, winner } = game;
 
   if (mode !== 'pve') {
-    return winner ? `${winner} won` : '-';
+    if (!winner) return '-';
+    return `${game.winner_name || winner} won`;
   }
 
   if (winner === 'player1') return 'Win';
   if (winner === 'player2') return 'Loss';
   return 'Unknown';
+}
+
+function formatLimit(game) {
+  const mt = toNumber(game.max_take);
+  return mt > 0 ? `Max ${mt}` : 'Unlimited';
 }
 
 function formatDate(dateText) {
@@ -91,7 +97,7 @@ function renderRecentGames(games) {
   if (!Array.isArray(games) || games.length === 0) {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
-    cell.colSpan = 5;
+    cell.colSpan = 6;
     cell.className = 'empty-table';
     cell.textContent = 'No completed games yet.';
     row.appendChild(cell);
@@ -111,6 +117,9 @@ function renderRecentGames(games) {
     const difficultyCell = document.createElement('td');
     difficultyCell.textContent = formatDifficulty(game.mode, game.difficulty);
 
+    const limitCell = document.createElement('td');
+    limitCell.textContent = formatLimit(game);
+
     const resultCell = document.createElement('td');
     resultCell.textContent = formatResult(game);
 
@@ -120,6 +129,7 @@ function renderRecentGames(games) {
     row.appendChild(dateCell);
     row.appendChild(modeCell);
     row.appendChild(difficultyCell);
+    row.appendChild(limitCell);
     row.appendChild(resultCell);
     row.appendChild(movesCell);
 
@@ -127,48 +137,41 @@ function renderRecentGames(games) {
   });
 }
 
-async function loadStats() {
-  try {
-    const response = await fetch('/api/stats');
-    if (!response.ok) {
-      throw new Error('Failed to fetch statistics.');
-    }
+function renderStats(stats) {
+  totalGamesEl.textContent = String(toNumber(stats.totalGames));
+  pvpGamesEl.textContent = String(toNumber(stats.pvpGames));
+  pveGamesEl.textContent = String(toNumber(stats.pveGames));
+  averageMovesEl.textContent = toNumber(stats.averageMoves).toFixed(2);
 
-    const stats = await response.json();
-    totalGamesEl.textContent = String(toNumber(stats.totalGames));
-    pvpGamesEl.textContent = String(toNumber(stats.pvpGames));
-    pveGamesEl.textContent = String(toNumber(stats.pveGames));
-    averageMovesEl.textContent = toNumber(stats.averageMoves).toFixed(2);
+  const byDifficulty = stats.winsLossesByDifficulty || {};
+  ['easy', 'medium', 'hard'].forEach((level) => {
+    const wins = toNumber(byDifficulty[level]?.wins);
+    const losses = toNumber(byDifficulty[level]?.losses);
+    updateDifficultyCard(level, wins, losses);
+  });
 
-    const byDifficulty = stats.winsLossesByDifficulty || {};
-    ['easy', 'medium', 'hard'].forEach((level) => {
-      const wins = toNumber(byDifficulty[level]?.wins);
-      const losses = toNumber(byDifficulty[level]?.losses);
-      updateDifficultyCard(level, wins, losses);
-    });
+  renderRecentGames(stats.recentGames || []);
+}
 
-    renderRecentGames(stats.recentGames || []);
-  } catch (error) {
-    recentGamesBody.innerHTML = '<tr><td colspan="5" class="empty-table">Could not load stats.</td></tr>';
+function loadStats() {
+  if (!window.LocalStats) {
+    recentGamesBody.innerHTML = '<tr><td colspan="6" class="empty-table">Local storage is unavailable in this browser.</td></tr>';
+    return;
   }
+  renderStats(window.LocalStats.computeStats());
 }
 
 async function clearStats() {
   const confirmed = window.confirm('Clear all saved statistics? This cannot be undone.');
-  if (!confirmed) {
-    return;
-  }
+  if (!confirmed) return;
+
+  if (window.LocalStats) window.LocalStats.reset();
 
   try {
-    const response = await fetch('/api/stats/reset', { method: 'POST' });
-    if (!response.ok) {
-      throw new Error('Failed to clear stats.');
-    }
+    await fetch('/api/stats/reset', { method: 'POST', keepalive: true });
+  } catch (_) { /* server may be unreachable */ }
 
-    window.location.reload();
-  } catch (error) {
-    window.alert('Failed to clear stats. Please try again.');
-  }
+  window.location.reload();
 }
 
 clearStatsBtn.addEventListener('click', clearStats);

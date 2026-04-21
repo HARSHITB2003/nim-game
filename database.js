@@ -22,6 +22,7 @@ db.exec(`
     mode TEXT NOT NULL,
     difficulty TEXT,
     heap_config TEXT NOT NULL,
+    max_take INTEGER DEFAULT 0,
     winner TEXT,
     winner_name TEXT,
     player1_name TEXT,
@@ -31,11 +32,11 @@ db.exec(`
   );
 `);
 
-// Clean up legacy columns silently — old rows with completed=0 are orphaned
-// server-side games that never finished; delete them.
-try {
-  db.exec(`DELETE FROM games WHERE winner IS NULL`);
-} catch (_) { /* fresh table, nothing to clean */ }
+try { db.exec(`ALTER TABLE games ADD COLUMN max_take INTEGER DEFAULT 0`); }
+catch (_) { /* column already exists */ }
+
+try { db.exec(`DELETE FROM games WHERE winner IS NULL`); }
+catch (_) { /* fresh table, nothing to clean */ }
 
 /* ---------- helpers ---------- */
 
@@ -46,12 +47,12 @@ function toText(value) {
 /* ---------- prepared statements ---------- */
 
 const insertGameStmt = db.prepare(`
-  INSERT INTO games (mode, difficulty, heap_config, winner, winner_name, player1_name, player2_name, total_moves)
-  VALUES (@mode, @difficulty, @heapConfig, @winner, @winnerName, @player1Name, @player2Name, @totalMoves)
+  INSERT INTO games (mode, difficulty, heap_config, max_take, winner, winner_name, player1_name, player2_name, total_moves)
+  VALUES (@mode, @difficulty, @heapConfig, @maxTake, @winner, @winnerName, @player1Name, @player2Name, @totalMoves)
 `);
 
 const getRecentGamesStmt = db.prepare(`
-  SELECT id, mode, difficulty, heap_config, winner, winner_name,
+  SELECT id, mode, difficulty, heap_config, max_take, winner, winner_name,
          player1_name, player2_name, total_moves, created_at
   FROM games
   ORDER BY created_at DESC, id DESC
@@ -77,11 +78,12 @@ const getWinsLossesByDifficultyStmt = db.prepare(`
 
 /* ---------- public API ---------- */
 
-function saveGameResult({ mode, difficulty, heapConfig, winner, winnerName, player1Name, player2Name, totalMoves }) {
+function saveGameResult({ mode, difficulty, heapConfig, maxTake, winner, winnerName, player1Name, player2Name, totalMoves }) {
   insertGameStmt.run({
     mode,
     difficulty: difficulty ?? null,
     heapConfig: toText(heapConfig),
+    maxTake: Number.isInteger(maxTake) && maxTake > 0 ? maxTake : 0,
     winner,
     winnerName: winnerName ?? winner,
     player1Name: player1Name ?? null,

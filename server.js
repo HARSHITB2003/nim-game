@@ -18,7 +18,7 @@ app.use(express.static(path.join(__dirname, 'public')));
  */
 app.post('/api/game/save', (req, res) => {
   try {
-    const { mode, difficulty, heaps, winner, winnerName, player1Name, player2Name, totalMoves } = req.body || {};
+    const { mode, difficulty, heaps, maxTake, winner, winnerName, player1Name, player2Name, totalMoves } = req.body || {};
 
     if (!mode || !winner) {
       res.status(400).json({ error: 'mode and winner are required.' });
@@ -29,6 +29,7 @@ app.post('/api/game/save', (req, res) => {
       mode,
       difficulty: difficulty ?? null,
       heapConfig: Array.isArray(heaps) ? heaps : [],
+      maxTake: Number.isInteger(maxTake) && maxTake > 0 ? maxTake : 0,
       winner,
       winnerName: winnerName ?? winner,
       player1Name: player1Name ?? 'Player 1',

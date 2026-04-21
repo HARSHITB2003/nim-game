@@ -398,24 +398,32 @@ async function handleTimerExpired() {
   await submitMove(move);
 }
 
-/* ---------- save completed game to server ---------- */
+/* ---------- save completed game: localStorage primary, server best-effort ---------- */
 function saveGameResult() {
+  const payload = {
+    mode,
+    difficulty: mode === 'pve' ? difficulty : null,
+    heaps: startingHeaps,
+    maxTake: maxTake || 0,
+    winner: game.winner,
+    winnerName: state.playerNames[game.winner] || game.winner,
+    player1Name: state.playerNames.player1,
+    player2Name: state.playerNames.player2,
+    totalMoves: game.moveHistory.length,
+  };
+
+  if (window.LocalStats) {
+    window.LocalStats.addGame(payload);
+  }
+
   try {
     fetch('/api/game/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mode,
-        difficulty: mode === 'pve' ? difficulty : null,
-        heaps: startingHeaps,
-        winner: game.winner,
-        winnerName: state.playerNames[game.winner] || game.winner,
-        player1Name: state.playerNames.player1,
-        player2Name: state.playerNames.player2,
-        totalMoves: game.moveHistory.length,
-      }),
+      body: JSON.stringify(payload),
+      keepalive: true,
     }).catch(() => {});
-  } catch (_) { /* stats are non-critical */ }
+  } catch (_) { /* server save is optional */ }
 }
 
 /* ---------- game actions ---------- */
