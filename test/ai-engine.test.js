@@ -77,3 +77,62 @@ describe('NimAI.getHint', () => {
     });
   });
 });
+
+describe('NimAI restricted moves (maxTake)', () => {
+  it('grundy collapses heap size modulo (maxTake+1)', () => {
+    assert.strictEqual(NimAI.grundy(10, 5), 10 % 6);
+    assert.strictEqual(NimAI.grundy(7, 3), 7 % 4);
+    assert.strictEqual(NimAI.grundy(10, 0), 10);
+  });
+
+  it('findOptimalMoves respects maxTake', () => {
+    const heaps = [10, 10];
+    const maxTake = 5;
+    const moves = NimAI.findOptimalMoves(heaps, maxTake);
+    moves.forEach((m) => {
+      assert.ok(m.stonesToTake >= 1 && m.stonesToTake <= maxTake, `move ${m.stonesToTake} within [1,${maxTake}]`);
+    });
+  });
+
+  it('optimal move drives gameGrundy to 0 under restriction', () => {
+    const heaps = [7, 9];
+    const maxTake = 5;
+    const moves = NimAI.findOptimalMoves(heaps, maxTake);
+    assert.ok(moves.length > 0, 'should find winning move from non-balanced position');
+    const m = moves[0];
+    const after = [...heaps];
+    after[m.heapIndex] -= m.stonesToTake;
+    assert.strictEqual(NimAI.gameGrundy(after, maxTake), 0);
+  });
+
+  it('returns no optimal moves from balanced restricted position', () => {
+    // Heaps [6, 6] with maxTake 5: grundy(6,5)=0 for each, so gameGrundy=0 (losing).
+    const moves = NimAI.findOptimalMoves([6, 6], 5);
+    assert.strictEqual(moves.length, 0);
+  });
+
+  it('getRandomMove never exceeds maxTake', () => {
+    const heaps = [20];
+    const maxTake = 5;
+    for (let i = 0; i < 50; i++) {
+      const m = NimAI.getRandomMove(heaps, maxTake);
+      assert.ok(m.stonesToTake <= maxTake, `${m.stonesToTake} must be <= ${maxTake}`);
+      assert.ok(m.stonesToTake >= 1);
+    }
+  });
+
+  it('getHardMove plays optimally under restriction', () => {
+    const heaps = [7, 9];
+    const maxTake = 5;
+    const m = NimAI.getHardMove(heaps, maxTake);
+    const after = [...heaps];
+    after[m.heapIndex] -= m.stonesToTake;
+    assert.strictEqual(NimAI.gameGrundy(after, maxTake), 0);
+  });
+
+  it('getHint returns restriction-aware winning message', () => {
+    const hint = NimAI.getHint([7, 9], 5);
+    assert.strictEqual(hint.type, 'winning');
+    assert.ok(/modulo 6/.test(hint.message), 'message should cite modulus');
+  });
+});

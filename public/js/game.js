@@ -5,8 +5,10 @@ const params = new URLSearchParams(window.location.search);
 const mode = (params.get('mode') || 'pvp').toLowerCase();
 const difficulty = (params.get('difficulty') || 'easy').toLowerCase();
 const startingHeaps = parseHeaps(params.get('heaps'));
+const maxTake = parseMaxTake(params.get('maxTake'));
 
 const difficultyText = document.getElementById('difficultyText');
+const maxTakeText = document.getElementById('maxTakeText');
 const moveCounter = document.getElementById('moveCounter');
 const turnBanner = document.getElementById('turnBanner');
 const gameBoard = document.getElementById('gameBoard');
@@ -83,6 +85,11 @@ function parseHeaps(heapsParam) {
   return heaps.length > 0 ? heaps : [1, 3, 5, 7];
 }
 
+function parseMaxTake(raw) {
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 1 ? n : 0;
+}
+
 function wait(ms) {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms);
@@ -112,6 +119,14 @@ function showPopup(message) {
 function updateHeader() {
   const difficultyCapitalized = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
   difficultyText.textContent = mode === 'pve' ? `Difficulty: ${difficultyCapitalized}` : 'Player vs Player';
+  if (maxTakeText) {
+    if (maxTake > 0) {
+      maxTakeText.textContent = `Max ${maxTake} per move`;
+      maxTakeText.hidden = false;
+    } else {
+      maxTakeText.hidden = true;
+    }
+  }
   moveCounter.textContent = String(state.moveHistory.length);
 }
 
@@ -158,6 +173,10 @@ function updateTimerUi() {
 }
 
 function setSelection(heapIndex, stonesToTake) {
+  if (maxTake > 0 && stonesToTake > maxTake) {
+    showPopup(`Max ${maxTake} per move. Pick a stone closer to the end of the row.`);
+    return;
+  }
   state.selected = { heapIndex, stonesToTake };
   sounds.playClickSound();
   renderBoard();
@@ -315,10 +334,15 @@ async function animateRemoval(move, isAI) {
 
 function evaluateHumanMove(heapsBefore, move) {
   if (mode !== 'pve' || state.currentPlayer !== 'player1') return;
-  const before = window.NimAI.nimSum(heapsBefore);
+  const before = maxTake > 0
+    ? window.NimAI.gameGrundy(heapsBefore, maxTake)
+    : window.NimAI.nimSum(heapsBefore);
   const after = applyMoveToHeaps(heapsBefore, move);
+  const afterScore = maxTake > 0
+    ? window.NimAI.gameGrundy(after, maxTake)
+    : window.NimAI.nimSum(after);
   state.performance.humanMoves += 1;
-  if (before !== 0 && window.NimAI.nimSum(after) === 0) {
+  if (before !== 0 && afterScore === 0) {
     state.performance.optimalMoves += 1;
   }
 }
@@ -329,7 +353,8 @@ function getRandomValidMove() {
     .filter((r) => r.heap > 0);
   if (options.length === 0) return null;
   const r = options[Math.floor(Math.random() * options.length)];
-  return { heapIndex: r.heapIndex, stonesToTake: Math.floor(Math.random() * r.heap) + 1 };
+  const cap = maxTake > 0 ? Math.min(maxTake, r.heap) : r.heap;
+  return { heapIndex: r.heapIndex, stonesToTake: Math.floor(Math.random() * cap) + 1 };
 }
 
 /* ---------- timer ---------- */
@@ -407,7 +432,7 @@ function syncState() {
 }
 
 function startGame() {
-  game = new window.NimGame(startingHeaps);
+  game = new window.NimGame(startingHeaps, { maxTake });
 
   state.started = true;
   state.endEffectsPlayed = false;
@@ -457,7 +482,7 @@ async function submitMove(forcedMove) {
     state.thinking = true;
     renderAll();
 
-    const aiChoice = window.NimAI.getMove(game.heaps, difficulty);
+    const aiChoice = window.NimAI.getMove(game.heaps, difficulty, maxTake);
     const thinkTime = { easy: 400, medium: 800, hard: 1200 }[difficulty] || 800;
     await wait(thinkTime);
 
@@ -508,7 +533,7 @@ function undoMove() {
 
 function requestHint() {
   if (!game || state.gameOver) return;
-  const hint = window.NimAI.getHint(game.heaps);
+  const hint = window.NimAI.getHint(game.heaps, maxTake);
   showPopup(hint.message || 'No hint available.');
   if (hint.suggestion && typeof hint.suggestion.heapIndex === 'number') {
     pulseSuggestedStones(hint.suggestion.heapIndex, hint.suggestion.stonesToTake);

@@ -107,3 +107,26 @@ describe('NimGame.reset', () => {
     assert.strictEqual(game.moveHistory.length, 0);
   });
 });
+
+describe('NimGame maxTake (restricted moves)', () => {
+  it('rejects a move that exceeds maxTake', () => {
+    const game = new NimGame([10, 10], { maxTake: 5 });
+    const result = game.makeMove(0, 6);
+    assert.strictEqual(result.valid, false);
+    assert.ok(/at most 5/.test(result.reason));
+  });
+
+  it('accepts a move at the maxTake limit', () => {
+    const game = new NimGame([10, 10], { maxTake: 5 });
+    const result = game.makeMove(0, 5);
+    assert.strictEqual(result.valid, true);
+    assert.deepStrictEqual(result.heaps, [5, 10]);
+  });
+
+  it('defaults to unlimited when maxTake not provided', () => {
+    const game = new NimGame([10, 10]);
+    assert.strictEqual(game.maxTake, 0);
+    const result = game.makeMove(0, 10);
+    assert.strictEqual(result.valid, true);
+  });
+});

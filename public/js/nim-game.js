@@ -1,8 +1,11 @@
 'use strict';
 
 class NimGame {
-  constructor(heapSizes) {
+  constructor(heapSizes, options = {}) {
     this.heaps = Array.isArray(heapSizes) ? [...heapSizes] : [];
+    const rawMax = typeof options === 'object' && options ? options.maxTake : options;
+    const parsedMax = Number(rawMax);
+    this.maxTake = Number.isInteger(parsedMax) && parsedMax >= 1 ? parsedMax : 0;
     this.currentPlayer = 'player1';
     this.moveHistory = [];
     this.gameOver = false;
@@ -25,6 +28,9 @@ class NimGame {
     }
     if (this.heaps[heapIndex] < stonesToTake) {
       return { valid: false, reason: 'Not enough stones in selected heap.' };
+    }
+    if (this.maxTake > 0 && stonesToTake > this.maxTake) {
+      return { valid: false, reason: `You can take at most ${this.maxTake} per move.` };
     }
 
     const heapsBefore = [...this.heaps];

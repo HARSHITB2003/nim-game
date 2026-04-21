@@ -163,6 +163,58 @@
         </div>
       </section>
 
+      <section class="heap-config" aria-label="Move restriction">
+        <h3>Move Restriction</h3>
+        <div class="heap-controls">
+          <label>Max per move</label>
+          <div
+            class="term-select"
+            id="maxTakeCustom"
+            role="combobox"
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            tabindex="0"
+          >
+            <div class="term-select-val">Unlimited</div>
+            <div class="term-select-arrow">&#9660;</div>
+            <ul class="term-select-opts" role="listbox">
+              <li
+                class="term-opt selected"
+                data-value="0"
+                role="option"
+                aria-selected="true"
+              >
+                Unlimited
+              </li>
+              <li
+                class="term-opt"
+                data-value="5"
+                role="option"
+                aria-selected="false"
+              >
+                Max 5 per move
+              </li>
+              <li
+                class="term-opt"
+                data-value="8"
+                role="option"
+                aria-selected="false"
+              >
+                Max 8 per move
+              </li>
+              <li
+                class="term-opt"
+                data-value="10"
+                role="option"
+                aria-selected="false"
+              >
+                Max 10 per move
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       <section class="theme-panel" aria-label="Theme selector">
         <h3>Visual Theme</h3>
         <div class="theme-options">
@@ -183,53 +235,64 @@
 
       <script>
         (function () {
-          const box = document.getElementById("heapPresetCustom");
-          const val = box.querySelector(".term-select-val");
-          const opts = box.querySelectorAll(".term-opt");
+          function bindTermSelect(box, eventName) {
+            if (!box) return;
+            const val = box.querySelector(".term-select-val");
+            const opts = box.querySelectorAll(".term-opt");
 
-          function close() {
-            box.classList.remove("open");
-            box.setAttribute("aria-expanded", "false");
-          }
-
-          function open() {
-            box.classList.add("open");
-            box.setAttribute("aria-expanded", "true");
-          }
-
-          box.addEventListener("click", function (e) {
-            const opt = e.target.closest(".term-opt");
-            if (opt) {
-              opts.forEach((o) => {
-                o.classList.remove("selected");
-                o.setAttribute("aria-selected", "false");
-              });
-              opt.classList.add("selected");
-              opt.setAttribute("aria-selected", "true");
-              val.textContent = opt.textContent;
-              box.dispatchEvent(
-                new CustomEvent("preset-change", {
-                  detail: opt.dataset.value,
-                  bubbles: true,
-                }),
-              );
-              close();
-              return;
+            function close() {
+              box.classList.remove("open");
+              box.setAttribute("aria-expanded", "false");
             }
-            box.classList.contains("open") ? close() : open();
-          });
 
-          box.addEventListener("keydown", function (e) {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
+            function open() {
+              box.classList.add("open");
+              box.setAttribute("aria-expanded", "true");
+            }
+
+            box.addEventListener("click", function (e) {
+              const opt = e.target.closest(".term-opt");
+              if (opt) {
+                opts.forEach((o) => {
+                  o.classList.remove("selected");
+                  o.setAttribute("aria-selected", "false");
+                });
+                opt.classList.add("selected");
+                opt.setAttribute("aria-selected", "true");
+                val.textContent = opt.textContent;
+                box.dispatchEvent(
+                  new CustomEvent(eventName, {
+                    detail: opt.dataset.value,
+                    bubbles: true,
+                  }),
+                );
+                close();
+                return;
+              }
               box.classList.contains("open") ? close() : open();
-            }
-            if (e.key === "Escape") close();
-          });
+            });
 
-          document.addEventListener("click", function (e) {
-            if (!box.contains(e.target)) close();
-          });
+            box.addEventListener("keydown", function (e) {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                box.classList.contains("open") ? close() : open();
+              }
+              if (e.key === "Escape") close();
+            });
+
+            document.addEventListener("click", function (e) {
+              if (!box.contains(e.target)) close();
+            });
+          }
+
+          bindTermSelect(
+            document.getElementById("heapPresetCustom"),
+            "preset-change",
+          );
+          bindTermSelect(
+            document.getElementById("maxTakeCustom"),
+            "max-take-change",
+          );
 
           const themePanel = document.querySelector(".theme-panel");
           if (!themePanel) return;

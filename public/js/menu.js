@@ -11,6 +11,14 @@ const difficultyButtons = document.querySelectorAll('.difficulty-btn');
 const heapPresetBox = document.getElementById('heapPresetCustom');
 const customHeapWrap = document.getElementById('customHeapWrap');
 const customHeaps = document.getElementById('customHeaps');
+const maxTakeBox = document.getElementById('maxTakeCustom');
+
+function getSelectedMaxTake() {
+  if (!maxTakeBox) return 0;
+  const selected = maxTakeBox.querySelector('.term-opt.selected');
+  const raw = selected ? Number(selected.dataset.value) : 0;
+  return Number.isInteger(raw) && raw >= 1 ? raw : 0;
+}
 
 function getSelectedPreset() {
   const selected = heapPresetBox.querySelector('.term-opt.selected');
@@ -54,6 +62,11 @@ function buildGameUrl(mode, difficulty) {
 
   if (difficulty) {
     params.set('difficulty', difficulty);
+  }
+
+  const maxTake = getSelectedMaxTake();
+  if (maxTake > 0) {
+    params.set('maxTake', String(maxTake));
   }
 
   return `game.html?${params.toString()}`;
