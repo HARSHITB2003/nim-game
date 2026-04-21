@@ -412,8 +412,20 @@ function saveGameResult() {
     totalMoves: game.moveHistory.length,
   };
 
+  let savedLocally = false;
   if (window.LocalStats) {
-    window.LocalStats.addGame(payload);
+    try {
+      const entry = window.LocalStats.addGame(payload);
+      savedLocally = !!entry;
+    } catch (err) {
+      showPopup('Could not save locally: ' + (err && err.message ? err.message : 'unknown error'));
+    }
+  }
+
+  if (savedLocally) {
+    showPopup(`Saved to stats (${mode === 'pvp' ? 'PvP' : 'vs AI'})`);
+  } else if (window.LocalStats) {
+    showPopup('Save failed — check browser storage permissions.');
   }
 
   try {
