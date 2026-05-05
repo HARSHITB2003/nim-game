@@ -74,6 +74,8 @@ const state = {
   },
 };
 
+const MAX_HEAP_SIZE = 10000;
+
 function parseHeaps(heapsParam) {
   if (!heapsParam) {
     return [1, 3, 5, 7];
@@ -81,7 +83,8 @@ function parseHeaps(heapsParam) {
   const heaps = heapsParam
     .split(',')
     .map((value) => Number(value.trim()))
-    .filter((value) => Number.isInteger(value) && value > 0);
+    .filter((value) => Number.isInteger(value) && value > 0)
+    .map((value) => Math.min(value, MAX_HEAP_SIZE));
   return heaps.length > 0 ? heaps : [1, 3, 5, 7];
 }
 

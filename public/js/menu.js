@@ -25,36 +25,42 @@ function getSelectedPreset() {
   return selected ? selected.dataset.value : '1,3,5,7';
 }
 
+const MAX_HEAP_SIZE = 10000;
+
 function parseHeaps() {
   const preset = getSelectedPreset();
 
   if (preset !== 'custom') {
-    return preset;
+    return { heaps: preset };
   }
 
   const raw = customHeaps.value.trim();
   if (!raw) {
-    return null;
+    return { error: 'Please enter valid heap sizes (positive integers) for custom configuration.' };
   }
 
-  const values = raw
-    .split(',')
-    .map((value) => Number(value.trim()))
-    .filter((value) => Number.isInteger(value) && value > 0);
+  const parsed = raw.split(',').map((value) => Number(value.trim()));
+
+  if (parsed.some((value) => Number.isInteger(value) && value > MAX_HEAP_SIZE)) {
+    return { error: `Each heap size must be ${MAX_HEAP_SIZE} or less.` };
+  }
+
+  const values = parsed.filter((value) => Number.isInteger(value) && value > 0);
 
   if (values.length === 0) {
-    return null;
+    return { error: 'Please enter valid heap sizes (positive integers) for custom configuration.' };
   }
 
-  return values.join(',');
+  return { heaps: values.join(',') };
 }
 
 function buildGameUrl(mode, difficulty) {
-  const heaps = parseHeaps();
-  if (!heaps) {
-    window.alert('Please enter valid heap sizes (positive integers) for custom configuration.');
+  const result = parseHeaps();
+  if (result.error) {
+    window.alert(result.error);
     return null;
   }
+  const heaps = result.heaps;
 
   const params = new URLSearchParams();
   params.set('mode', mode);
