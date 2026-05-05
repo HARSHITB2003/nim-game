@@ -1,5 +1,7 @@
 'use strict';
 
+const MAX_HEAP_SIZE = 10000;
+
 const params = new URLSearchParams(window.location.search);
 
 const mode = (params.get('mode') || 'pvp').toLowerCase();
@@ -73,8 +75,6 @@ const state = {
     intervalId: null,
   },
 };
-
-const MAX_HEAP_SIZE = 10000;
 
 function parseHeaps(heapsParam) {
   if (!heapsParam) {
